@@ -4,7 +4,9 @@ export const registryReadSnippet = `import { createPublicClient, http } from "vi
 import { sepolia } from "viem/chains";
 import { registryAbi } from "@/lib/contracts/registry";
 import { erc20Abi } from "@/lib/contracts/erc20";
+import { erc7984Abi } from "@/lib/contracts/erc7984";
 import { erc7984Erc20WrapperAbi } from "@/lib/contracts/wrapper";
+import { useGrantPermit, useDecryptValues } from "@zama-fhe/react-sdk";
 
 const client = createPublicClient({
   chain: sepolia,
@@ -26,4 +28,21 @@ await walletClient.writeContract({
   abi: erc7984Erc20WrapperAbi,
   functionName: "wrap",
   args: [connectedUserAddress, amount],
-});`;
+});
+
+// Phase 3 confidential balance read + user-decryption:
+const encryptedBalanceHandle = await client.readContract({
+  address: wrapperAddress,
+  abi: erc7984Abi,
+  functionName: "confidentialBalanceOf",
+  args: [connectedUserAddress],
+});
+
+// In React, grantPermit signs the Zama EIP-712 permit for this contract.
+// useDecryptValues decrypts locally through the Zama SDK/relayer using:
+// [{ encryptedValue: encryptedBalanceHandle, contractAddress: wrapperAddress }]
+const grantPermit = useGrantPermit();
+await grantPermit.mutateAsync([wrapperAddress]);
+const decrypted = useDecryptValues([
+  { encryptedValue: encryptedBalanceHandle, contractAddress: wrapperAddress },
+]);`;

@@ -561,6 +561,13 @@ h1 {
   border-top: 1px solid var(--border-soft);
 }
 
+.confidential-panel {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
 .action-panel-header {
   display: flex;
   justify-content: space-between;
@@ -677,6 +684,59 @@ h1 {
   gap: 5px;
   margin-left: auto;
   color: var(--accent-strong);
+}
+
+.handle-row {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: rgba(7, 9, 13, 0.42);
+}
+
+.handle-row span,
+.decrypt-result span {
+  color: var(--subtle);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.handle-row code {
+  overflow: hidden;
+  color: var(--accent-strong);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.decrypt-result {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(110, 231, 168, 0.35);
+  border-radius: var(--radius);
+  background: rgba(110, 231, 168, 0.08);
+}
+
+.decrypt-result svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--success);
+}
+
+.decrypt-result strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.decrypt-result small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
 }
 
 .spin {

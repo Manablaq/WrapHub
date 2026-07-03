@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, LockKeyhole, TestTube2 } from "lucide-react";
 import { AddressActions } from "@/components/registry/address-actions";
+import { ConfidentialBalanceInspector } from "@/components/registry/confidential-balance-inspector";
 import { PairActionPanel } from "@/components/registry/pair-action-panel";
 import { shortenAddress } from "@/lib/format";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
@@ -58,6 +59,7 @@ export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
       </div>
 
       <PairActionPanel pair={pair} />
+      <ConfidentialBalanceInspector pair={pair} />
     </article>
   );
 }

@@ -1,6 +1,6 @@
 # WrapHub
 
-WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. Phase 2 adds the first real transaction flow: mock faucet minting, ERC-20 balance and allowance reads, wrapper approval, and wrapping ERC-20 into ERC-7984 confidential tokens. It does not deploy custom wrappers or fake registries.
+WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. Phase 3 adds ERC-7984 confidential balance inspection and Zama EIP-712 user-decryption. It does not deploy custom wrappers or fake registries.
 
 ## Official Registry
 
@@ -23,6 +23,8 @@ WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Develo
 - ERC-20 `balanceOf`, `allowance`, and `approve`
 - Public mock token `mint(address,uint256)` faucet action
 - Official wrapper `wrap(address,uint256)` action
+- ERC-7984 encrypted balance handle reads through `confidentialBalanceOf(address)`
+- Zama EIP-712 user-decryption for connected-user ERC-7984 balances
 
 ## Wrapper Function
 
@@ -34,13 +36,29 @@ function wrap(address to, uint256 amount) external returns (euint64);
 
 The UI approves the official wrapper address as spender for the underlying ERC-20, then calls `wrap(connectedUserAddress, amount)` on the wrapper returned by the official Sepolia registry.
 
+## Confidential Balance Decryption
+
+WrapHub reads the encrypted ERC-7984 balance handle with:
+
+```solidity
+function confidentialBalanceOf(address account) external view returns (euint64);
+```
+
+The frontend uses `@zama-fhe/react-sdk@3.2.0` and `@zama-fhe/sdk@3.2.0`:
+
+- `ZamaProvider` with the wagmi adapter and the official Sepolia Zama relayer config
+- `useGrantPermit` to request the EIP-712 wallet signature for the wrapper contract
+- `useDecryptValues` to decrypt `{ encryptedValue, contractAddress }`
+
+Decrypted balances are displayed only in browser UI state. WrapHub does not post decrypted balances on-chain and does not store them in a backend.
+
 ## Architecture
 
 - `app/`: Next.js App Router pages, layout, and global styles
 - `components/layout/`: app providers, header, wallet/network UI
 - `components/registry/`: registry explorer, pair cards, health panel, developer snippet
-- `hooks/`: client hooks for registry reads, ERC-20 reads, mint, approve, and wrap transactions
-- `lib/contracts/`: official registry ABI, ERC-20 ABI, and ERC7984 ERC-20 wrapper ABI
+- `hooks/`: client hooks for registry reads, ERC-20 reads, mint, approve, wrap, encrypted balance handle reads, and user-decryption
+- `lib/contracts/`: official registry ABI, ERC-20 ABI, ERC7984 ABI, and ERC7984 ERC-20 wrapper ABI
 - `lib/registry/`: pair enrichment, filters, health metrics, snippets, typed models
 - `lib/tokens/`: known official Sepolia pair metadata
 
@@ -90,5 +108,6 @@ npm run build
 - [x] Implement Sepolia faucet for official public cTokenMocks
 - [x] Implement approve wrapper flow
 - [x] Implement wrap transaction flow
+- [x] Implement ERC-7984 encrypted balance handle reading
+- [x] Implement EIP-712 user-decryption flow
 - [ ] Implement unwrap transaction flow
-- [ ] Implement EIP-712 user-decryption flow
