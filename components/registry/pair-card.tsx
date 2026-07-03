@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, LockKeyhole, TestTube2 } from "lucide-react";
 import { AddressActions } from "@/components/registry/address-actions";
+import { PairActionPanel } from "@/components/registry/pair-action-panel";
 import { shortenAddress } from "@/lib/format";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 
@@ -55,6 +56,8 @@ export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
           <AddressActions address={pair.underlyingAddress} />
         </div>
       </div>
+
+      <PairActionPanel pair={pair} />
     </article>
   );
 }

@@ -1,6 +1,6 @@
 # WrapHub
 
-WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. Phase 1 focuses on registry discovery, metadata enrichment, UX, validation, and production-ready project structure. It does not deploy custom wrappers or fake registries.
+WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. Phase 2 adds the first real transaction flow: mock faucet minting, ERC-20 balance and allowance reads, wrapper approval, and wrapping ERC-20 into ERC-7984 confidential tokens. It does not deploy custom wrappers or fake registries.
 
 ## Official Registry
 
@@ -8,7 +8,7 @@ WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Develo
 - Source of truth: `getTokenConfidentialTokenPairs` on the official registry contract
 - Local metadata: display enrichment and safety fallback only
 
-## Phase 1 Scope
+## Implemented Scope
 
 - Next.js app with TypeScript
 - RainbowKit/wagmi wallet connection
@@ -20,14 +20,27 @@ WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Develo
 - Filters for all pairs, valid only, faucet-supported, restricted, and unknown/revoked
 - Registry health panel
 - Developer mode registry read snippet
+- ERC-20 `balanceOf`, `allowance`, and `approve`
+- Public mock token `mint(address,uint256)` faucet action
+- Official wrapper `wrap(address,uint256)` action
+
+## Wrapper Function
+
+WrapHub uses the OpenZeppelin confidential wrapper interface from `@openzeppelin/confidential-contracts@0.5.1`:
+
+```solidity
+function wrap(address to, uint256 amount) external returns (euint64);
+```
+
+The UI approves the official wrapper address as spender for the underlying ERC-20, then calls `wrap(connectedUserAddress, amount)` on the wrapper returned by the official Sepolia registry.
 
 ## Architecture
 
 - `app/`: Next.js App Router pages, layout, and global styles
 - `components/layout/`: app providers, header, wallet/network UI
 - `components/registry/`: registry explorer, pair cards, health panel, developer snippet
-- `hooks/`: client hooks for registry reads
-- `lib/contracts/`: official registry ABI and ERC-20 metadata ABI
+- `hooks/`: client hooks for registry reads, ERC-20 reads, mint, approve, and wrap transactions
+- `lib/contracts/`: official registry ABI, ERC-20 ABI, and ERC7984 ERC-20 wrapper ABI
 - `lib/registry/`: pair enrichment, filters, health metrics, snippets, typed models
 - `lib/tokens/`: known official Sepolia pair metadata
 
@@ -72,7 +85,10 @@ npm run build
 - [x] Add Sepolia-only network guard and wallet connection
 - [x] Add explorer filters, pair cards, health metrics, copy buttons, and Etherscan links
 - [x] Add developer read snippet
-- [ ] Implement wrap transaction flow
+- [x] Implement ERC-20 balance reading
+- [x] Implement ERC-20 allowance reading
+- [x] Implement Sepolia faucet for official public cTokenMocks
+- [x] Implement approve wrapper flow
+- [x] Implement wrap transaction flow
 - [ ] Implement unwrap transaction flow
 - [ ] Implement EIP-712 user-decryption flow
-- [ ] Implement Sepolia faucet for official public cTokenMocks
