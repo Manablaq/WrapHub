@@ -8,7 +8,8 @@ export type UnwrapPhase = "idle" | "encrypting" | "unwrap-submitted" | "finalizi
 
 export function useUnwrapToken(wrapperAddress: Address) {
   const [phase, setPhase] = useState<UnwrapPhase>("idle");
-  const [unwrapHash, setUnwrapHash] = useState<`0x${string}` | undefined>();
+  const [requestHash, setRequestHash] = useState<`0x${string}` | undefined>();
+  const [finalizeHash, setFinalizeHash] = useState<`0x${string}` | undefined>();
   const unshield = useUnshield(wrapperAddress, {
     onSuccess: () => {
       setPhase("idle");
@@ -24,25 +25,28 @@ export function useUnwrapToken(wrapperAddress: Address) {
       unshield.mutate({
         amount,
         onUnwrapSubmitted: (txHash) => {
-          setUnwrapHash(txHash);
+          setRequestHash(txHash);
           setPhase("unwrap-submitted");
         },
         onFinalizing: () => setPhase("finalizing"),
         onFinalizeSubmitted: (txHash) => {
           setPhase("finalize-submitted");
-          setUnwrapHash(txHash);
+          setFinalizeHash(txHash);
         },
       });
     },
     data: unshield.data,
-    unwrapHash,
+    requestHash,
+    finalizeHash,
+    unwrapHash: finalizeHash ?? requestHash,
     phase,
     isPending: unshield.isPending,
     isSuccess: unshield.isSuccess,
     error: unshield.error,
     reset: () => {
       setPhase("idle");
-      setUnwrapHash(undefined);
+      setRequestHash(undefined);
+      setFinalizeHash(undefined);
       unshield.reset();
     },
   };

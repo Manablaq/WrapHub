@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
 import { sepolia } from "wagmi/chains";
@@ -12,6 +12,7 @@ import { useMintMockToken } from "@/hooks/use-mint-mock-token";
 import { useWrapToken } from "@/hooks/use-wrap-token";
 import { sepoliaTxUrl } from "@/lib/format";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
+import { useTransactionHistory } from "@/hooks/use-transaction-history";
 
 function formatTokenAmount(value: bigint, decimals: number) {
   const formatted = formatUnits(value, decimals);
@@ -36,6 +37,7 @@ function getFriendlyError(error: Error | null | undefined) {
 
 export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const [amount, setAmount] = useState("");
+  const trackedHashes = useRef(new Set<`0x${string}`>());
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const isSepolia = chainId === sepolia.id;
@@ -45,6 +47,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const mint = useMintMockToken(pair.underlyingAddress);
   const approve = useApproveWrapper(pair.underlyingAddress);
   const wrap = useWrapToken(pair.wrapperAddress);
+  const { trackTransaction, updateTransactionStatus } = useTransactionHistory();
 
   const parsedAmount = useMemo(() => {
     try {
@@ -95,6 +98,44 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
       void allowance.refetch();
     }
   }, [allowance, approve.isSuccess, wrap.isSuccess]);
+
+  useEffect(() => {
+    const entries = [
+      { hash: mint.hash, action: "faucet" as const, success: mint.isSuccess },
+      { hash: approve.hash, action: "approve" as const, success: approve.isSuccess },
+      { hash: wrap.hash, action: "wrap" as const, success: wrap.isSuccess },
+    ];
+
+    entries.forEach((entry) => {
+      if (!entry.hash) {
+        return;
+      }
+
+      if (!trackedHashes.current.has(entry.hash)) {
+        trackedHashes.current.add(entry.hash);
+        trackTransaction({
+          hash: entry.hash,
+          action: entry.action,
+          symbol: pair.symbol,
+          status: "submitted",
+        });
+      }
+
+      if (entry.success) {
+        updateTransactionStatus(entry.hash, "confirmed");
+      }
+    });
+  }, [
+    approve.hash,
+    approve.isSuccess,
+    mint.hash,
+    mint.isSuccess,
+    pair.symbol,
+    trackTransaction,
+    updateTransactionStatus,
+    wrap.hash,
+    wrap.isSuccess,
+  ]);
 
   return (
     <div className="action-panel">
@@ -177,6 +218,12 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
 
       {canTransact && hasEnoughBalance && !hasEnoughAllowance ? (
         <div className="inline-status">Approve the wrapper before wrapping this amount.</div>
+      ) : null}
+
+      {pair.hasPublicFaucet ? (
+        <div className="inline-status">
+          Public faucet mint is only enabled for official cTokenMock underlying ERC-20s.
+        </div>
       ) : null}
 
       {transactionError ? (

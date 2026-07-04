@@ -8,6 +8,7 @@ import { web } from "@zama-fhe/sdk/web";
 import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { sepolia } from "wagmi/chains";
+import { TransactionHistoryProvider } from "@/hooks/use-transaction-history";
 import { createZamaWagmiV2Config } from "@/lib/zama/wagmi-v2-adapter";
 
 const config = getDefaultConfig({
@@ -39,7 +40,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
               fontStack: "system",
             })}
           >
-            {children}
+            <TransactionHistoryProvider>{children}</TransactionHistoryProvider>
           </RainbowKitProvider>
         </ZamaProvider>
       </QueryClientProvider>

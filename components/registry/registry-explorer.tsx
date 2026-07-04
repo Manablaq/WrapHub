@@ -3,8 +3,10 @@
 import { RefreshCcw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { DeveloperPanel } from "@/components/registry/developer-panel";
+import { GuidedWorkflow } from "@/components/registry/guided-workflow";
 import { PairCard } from "@/components/registry/pair-card";
 import { RegistryHealth } from "@/components/registry/registry-health";
+import { TransactionTimeline } from "@/components/registry/transaction-timeline";
 import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
 import {
   filterRegistryPairs,
@@ -12,6 +14,24 @@ import {
   type RegistryFilter,
 } from "@/lib/registry/filters";
 import { useRegistryPairs } from "@/hooks/use-registry-pairs";
+import type { EnrichedRegistryPair } from "@/lib/registry/types";
+
+function sortPairsForReview(pairs: EnrichedRegistryPair[]) {
+  return [...pairs].sort((a, b) => {
+    const aScore =
+      (a.classification === "known-official" ? 0 : a.classification === "registry-unknown" ? 3 : 5) +
+      (a.validity === "valid" ? 0 : a.validity === "validation-unavailable" ? 2 : 4);
+    const bScore =
+      (b.classification === "known-official" ? 0 : b.classification === "registry-unknown" ? 3 : 5) +
+      (b.validity === "valid" ? 0 : b.validity === "validation-unavailable" ? 2 : 4);
+
+    if (aScore !== bScore) {
+      return aScore - bScore;
+    }
+
+    return a.symbol.localeCompare(b.symbol);
+  });
+}
 
 export function RegistryExplorer() {
   const [search, setSearch] = useState("");
@@ -20,7 +40,7 @@ export function RegistryExplorer() {
     useRegistryPairs();
 
   const filteredPairs = useMemo(
-    () => filterRegistryPairs(pairs, filter, search),
+    () => sortPairsForReview(filterRegistryPairs(pairs, filter, search)),
     [filter, pairs, search],
   );
 
@@ -31,7 +51,8 @@ export function RegistryExplorer() {
           <h2>Registry Explorer</h2>
           <p>
             Live Sepolia reads come from the official wrapper registry. Local known-pair metadata
-            only enriches display labels, faucet status, and restricted mint labels.
+            only enriches display labels, public mock faucet status, and restricted mint labels.
+            Unknown or system pairs stay visible for complete registry coverage.
           </p>
         </div>
         <div className="registry-address">
@@ -40,6 +61,8 @@ export function RegistryExplorer() {
         </div>
       </div>
 
+      <GuidedWorkflow />
+      <TransactionTimeline />
       <RegistryHealth health={health} />
 
       <div className="toolbar">

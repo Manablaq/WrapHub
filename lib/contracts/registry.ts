@@ -14,25 +14,46 @@ export const registryAbi = [
         name: "",
         type: "tuple[]",
         components: [
-          { name: "token", type: "address" },
-          { name: "confidentialToken", type: "address" },
+          { name: "tokenAddress", type: "address" },
+          { name: "confidentialTokenAddress", type: "address" },
+          { name: "isValid", type: "bool" },
         ],
       },
     ],
   },
   {
     type: "function",
-    name: "isValidTokenConfidentialTokenPair",
+    name: "getConfidentialTokenAddress",
     stateMutability: "view",
-    inputs: [
-      { name: "token", type: "address" },
-      { name: "confidentialToken", type: "address" },
+    inputs: [{ name: "tokenAddress", type: "address" }],
+    outputs: [
+      { name: "", type: "bool" },
+      { name: "", type: "address" },
     ],
+  },
+  {
+    type: "function",
+    name: "getTokenAddress",
+    stateMutability: "view",
+    inputs: [{ name: "confidentialTokenAddress", type: "address" }],
+    outputs: [
+      { name: "", type: "bool" },
+      { name: "", type: "address" },
+    ],
+  },
+  {
+    type: "function",
+    name: "isConfidentialTokenValid",
+    stateMutability: "view",
+    inputs: [{ name: "confidentialTokenAddress", type: "address" }],
     outputs: [{ name: "", type: "bool" }],
   },
 ] as const;
 
 export type RegistryPair = {
-  token: Address;
-  confidentialToken: Address;
+  tokenAddress: Address;
+  confidentialTokenAddress: Address;
+  isValid?: boolean;
+  token?: Address;
+  confidentialToken?: Address;
 };

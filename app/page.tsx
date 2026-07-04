@@ -11,12 +11,12 @@ const featureCards = [
   },
   {
     title: "Sepolia Guarded",
-    description: "Wallet UX is constrained to Sepolia before later transaction flows ship.",
+    description: "Wallet actions stay scoped to the supported Sepolia deployment.",
     icon: ShieldCheck,
   },
   {
-    title: "Wrapper Ready",
-    description: "The explorer is structured for wrap, unwrap, faucet, and decrypt flows.",
+    title: "Wrapper Console",
+    description: "Mint, approve, wrap, decrypt, and unwrap from one focused interface.",
     icon: WalletCards,
   },
 ];
@@ -27,11 +27,11 @@ export default function Home() {
       <section className="hero-section">
         <div className="hero-grid">
           <div className="hero-copy">
-            <p className="eyebrow">Zama Developer Program Bounty Track</p>
+            <p className="eyebrow">Official ERC-20 ↔ ERC-7984 wrapper console</p>
             <h1>WrapHub</h1>
             <p className="hero-lede">
-              A production-minded registry explorer for official Sepolia ERC-20 to ERC-7984
-              confidential wrapper pairs.
+              Confidential wrapper operations for official Sepolia pairs, from registry discovery
+              through encrypted balance inspection and unwrap settlement.
             </p>
             <div className="hero-actions">
               <Link className="primary-link" href="#registry-explorer">

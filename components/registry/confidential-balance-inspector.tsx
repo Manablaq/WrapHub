@@ -11,6 +11,7 @@ import { useDecryptConfidentialBalance } from "@/hooks/use-decrypt-confidential-
 import { useUnwrapToken } from "@/hooks/use-unwrap-token";
 import { sepoliaTxUrl, shortenBytes32 } from "@/lib/format";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
+import { useTransactionHistory } from "@/hooks/use-transaction-history";
 
 function formatDecryptedBalance(value: unknown, decimals: number) {
   if (typeof value === "bigint") {
@@ -43,6 +44,7 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const queryClient = useQueryClient();
+  const { trackTransaction, updateTransactionStatus } = useTransactionHistory();
   const isSepolia = chainId === sepolia.id;
   const handleRead = useConfidentialBalanceHandle(pair.wrapperAddress, address);
   const decrypt = useDecryptConfidentialBalance({
@@ -108,6 +110,47 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
     void handleRead.refetch();
     void queryClient.invalidateQueries();
   }, [decrypt, handleRead, queryClient, unwrap.data?.txHash, unwrap.isSuccess]);
+
+  useEffect(() => {
+    if (unwrap.requestHash) {
+      trackTransaction({
+        hash: unwrap.requestHash,
+        action: "unwrap-request",
+        symbol: pair.symbol,
+        status: "submitted",
+      });
+    }
+
+    if (unwrap.finalizeHash) {
+      trackTransaction({
+        hash: unwrap.finalizeHash,
+        action: "unwrap-finalize",
+        symbol: pair.symbol,
+        status: unwrap.isSuccess ? "confirmed" : "submitted",
+      });
+    }
+
+    if (unwrap.isSuccess && unwrap.finalizeHash) {
+      updateTransactionStatus(unwrap.finalizeHash, "confirmed");
+    }
+
+    if (
+      unwrap.requestHash &&
+      (unwrap.phase === "finalizing" ||
+        unwrap.phase === "finalize-submitted" ||
+        unwrap.isSuccess)
+    ) {
+      updateTransactionStatus(unwrap.requestHash, "confirmed");
+    }
+  }, [
+    pair.symbol,
+    trackTransaction,
+    unwrap.finalizeHash,
+    unwrap.isSuccess,
+    unwrap.phase,
+    unwrap.requestHash,
+    updateTransactionStatus,
+  ]);
 
   function submitUnwrap() {
     if (!canUnwrap || parsedUnwrapAmount === null) {

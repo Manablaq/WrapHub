@@ -6,7 +6,7 @@ import { registryAbi } from "@/lib/contracts/registry";
 import { erc20Abi } from "@/lib/contracts/erc20";
 import { erc7984Abi } from "@/lib/contracts/erc7984";
 import { erc7984Erc20WrapperAbi } from "@/lib/contracts/wrapper";
-import { useGrantPermit, useDecryptValues } from "@zama-fhe/react-sdk";
+import { useGrantPermit, useDecryptValues, useUnshield } from "@zama-fhe/react-sdk";
 
 const client = createPublicClient({
   chain: sepolia,
@@ -18,6 +18,22 @@ const pairs = await client.readContract({
   abi: registryAbi,
   functionName: "getTokenConfidentialTokenPairs",
 });
+
+// Registry discovery diagnostics:
+// getTokenConfidentialTokenPairs() returns:
+// { tokenAddress, confidentialTokenAddress, isValid }[]
+// tokenAddress is the public ERC-20 underlying.
+// confidentialTokenAddress is the ERC-7984 wrapper.
+// isValid is the registry's active/revoked flag for that pair.
+//
+// Standalone validation uses:
+// isConfidentialTokenValid(confidentialTokenAddress)
+//
+// WrapHub normalizes addresses by lowercase comparison and checks local metadata
+// in both possible orientations. If a known pair ever appears reversed, the UI
+// normalizes it back to { underlyingAddress, wrapperAddress } and marks the
+// diagnostic flag. Local metadata enriches labels and faucet/restricted status;
+// the live registry remains the source of truth and unknown pairs are shown.
 
 // Phase 2 transaction functions:
 // ERC-20: balanceOf(address), allowance(address,address), approve(address,uint256)

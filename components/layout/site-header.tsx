@@ -23,13 +23,12 @@ export function SiteHeader() {
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
           <a href="#registry-explorer">Registry</a>
-          <a href="#developer-mode">Developer</a>
+          <a href="#developer-console">Developer Console</a>
         </nav>
         <div className="header-actions">
-          <span className="network-pill">
+          <span className={`network-pill ${isConnected && !isSepolia ? "warning" : ""}`}>
             {isConnected && !isSepolia ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
-            <span>{isConnected ? "Network" : "Target"}</span>
-            <strong>Sepolia</strong>
+            <strong>{isConnected && !isSepolia ? "Switch to Sepolia" : "Sepolia"}</strong>
           </span>
           <ConnectButton chainStatus="icon" showBalance={false} />
         </div>

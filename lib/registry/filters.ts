@@ -5,9 +5,9 @@ export type RegistryFilter = "all" | "valid" | "faucet" | "restricted" | "unknow
 export const registryFilters: Array<{ id: RegistryFilter; label: string }> = [
   { id: "all", label: "All pairs" },
   { id: "valid", label: "Valid only" },
-  { id: "faucet", label: "Faucet-supported" },
-  { id: "restricted", label: "Restricted" },
-  { id: "unknown-revoked", label: "Unknown / revoked" },
+  { id: "faucet", label: "Public mock faucet" },
+  { id: "restricted", label: "Restricted mint" },
+  { id: "unknown-revoked", label: "Unknown / System" },
 ];
 
 export function filterRegistryPairs(
@@ -24,7 +24,7 @@ export function filterRegistryPairs(
       (filter === "faucet" && pair.hasPublicFaucet) ||
       (filter === "restricted" && pair.mintAccess === "restricted") ||
       (filter === "unknown-revoked" &&
-        (pair.validity !== "valid" || pair.metadataStatus === "unknown"));
+        (pair.validity !== "valid" || pair.classification !== "known-official"));
 
     if (!matchesFilter) {
       return false;
@@ -41,6 +41,8 @@ export function filterRegistryPairs(
       pair.underlyingAddress,
       pair.validity,
       pair.mintAccess,
+      pair.classification,
+      pair.validationSource,
     ]
       .join(" ")
       .toLowerCase()

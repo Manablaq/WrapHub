@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useReadContract, useReadContracts } from "wagmi";
+import { useReadContract } from "wagmi";
 import { OFFICIAL_REGISTRY_ADDRESS, registryAbi, type RegistryPair } from "@/lib/contracts/registry";
 import { enrichRegistryPair, getRegistryHealth } from "@/lib/registry/enrich";
 
@@ -20,26 +20,17 @@ export function useRegistryPairs() {
     [registryRead.data],
   );
 
-  const validityReads = useReadContracts({
-    contracts: rawPairs.map((pair) => ({
-      address: OFFICIAL_REGISTRY_ADDRESS,
-      abi: registryAbi,
-      functionName: "isValidTokenConfidentialTokenPair",
-      args: [pair.token, pair.confidentialToken] as const,
-    })),
-    query: {
-      enabled: rawPairs.length > 0,
-    },
-  });
-
   const pairs = useMemo(
     () =>
-      rawPairs.map((pair, index) => {
-        const validityResult = validityReads.data?.[index];
-        const isValid = validityResult?.status === "success" ? Boolean(validityResult.result) : null;
-        return enrichRegistryPair(pair.token, pair.confidentialToken, isValid);
+      rawPairs.map((pair) => {
+        const validation =
+          typeof pair.isValid === "boolean"
+            ? ({ status: "success", isValid: pair.isValid, source: "registry-list" } as const)
+            : ({ status: "unavailable" } as const);
+
+        return enrichRegistryPair(pair, validation);
       }),
-    [rawPairs, validityReads.data],
+    [rawPairs],
   );
 
   const health = useMemo(() => getRegistryHealth(pairs), [pairs]);
@@ -47,10 +38,10 @@ export function useRegistryPairs() {
   return {
     pairs,
     health,
-    isLoading: registryRead.isLoading || validityReads.isLoading,
+    isLoading: registryRead.isLoading,
     isRegistryLoading: registryRead.isLoading,
-    isValidityLoading: validityReads.isLoading,
-    error: registryRead.error ?? validityReads.error,
+    isValidityLoading: false,
+    error: registryRead.error,
     refetch: registryRead.refetch,
   };
 }

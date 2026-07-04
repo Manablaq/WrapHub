@@ -88,10 +88,53 @@ export const knownPairs = [
 const pairKey = (underlying: Address, wrapper: Address) =>
   `${underlying.toLowerCase()}:${wrapper.toLowerCase()}`;
 
+export const normalizeAddress = (address: Address) => address.toLowerCase();
+
 export const knownPairByRegistryKey = new Map(
   knownPairs.map((pair) => [pairKey(pair.underlyingAddress, pair.wrapperAddress), pair]),
 );
 
 export function getKnownPair(underlyingAddress: Address, wrapperAddress: Address) {
   return knownPairByRegistryKey.get(pairKey(underlyingAddress, wrapperAddress));
+}
+
+export type KnownPairResolution = {
+  metadata: KnownPairMetadata | null;
+  underlyingAddress: Address;
+  wrapperAddress: Address;
+  wasReturnedReversed: boolean;
+};
+
+export function resolveKnownPairFromRegistryAddresses(
+  firstAddress: Address,
+  secondAddress: Address,
+): KnownPairResolution {
+  const direct = getKnownPair(firstAddress, secondAddress);
+
+  if (direct) {
+    return {
+      metadata: direct,
+      underlyingAddress: firstAddress,
+      wrapperAddress: secondAddress,
+      wasReturnedReversed: false,
+    };
+  }
+
+  const reversed = getKnownPair(secondAddress, firstAddress);
+
+  if (reversed) {
+    return {
+      metadata: reversed,
+      underlyingAddress: secondAddress,
+      wrapperAddress: firstAddress,
+      wasReturnedReversed: true,
+    };
+  }
+
+  return {
+    metadata: null,
+    underlyingAddress: firstAddress,
+    wrapperAddress: secondAddress,
+    wasReturnedReversed: false,
+  };
 }
