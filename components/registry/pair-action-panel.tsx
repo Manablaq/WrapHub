@@ -141,12 +141,14 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
     <div className="action-panel">
       <div className="action-panel-header">
         <div>
-          <span>Faucet - Approve - Wrap</span>
+          <span>Faucet → Approve → Wrap</span>
           <strong>Wrap ERC-20 into confidential token</strong>
         </div>
       </div>
 
-      {!isConnected ? <div className="action-notice">Connect a wallet to use actions.</div> : null}
+      {!isConnected ? (
+        <div className="action-notice">Connect a wallet to mint, approve, and wrap this pair.</div>
+      ) : null}
       {isConnected && !isSepolia ? (
         <div className="action-notice warning">Switch to Sepolia before sending transactions.</div>
       ) : null}
@@ -222,7 +224,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
 
       {pair.hasPublicFaucet ? (
         <div className="inline-status">
-          Public faucet mint is only enabled for official cTokenMock underlying ERC-20s.
+          Public mock faucet access is available for official cTokenMock underlying ERC-20s.
         </div>
       ) : null}
 

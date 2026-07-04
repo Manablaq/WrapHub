@@ -21,7 +21,7 @@ export function TransactionTimeline() {
         <div>
           <span>Local Session</span>
           <h2>Session Activity</h2>
-          <p>Recent wallet actions are stored locally in this browser with Sepolia Etherscan links.</p>
+          <p>Activity is stored locally in this browser with direct Sepolia Etherscan links.</p>
         </div>
         <button
           className="icon-button"
@@ -35,7 +35,10 @@ export function TransactionTimeline() {
       </div>
 
       {transactions.length === 0 ? (
-        <div className="timeline-empty">No transactions tracked in this browser yet.</div>
+        <div className="timeline-empty">
+          <strong>No session activity yet.</strong>
+          <span>Mint, approve, wrap, decrypt, or unwrap to populate this local activity feed.</span>
+        </div>
       ) : (
         <div className="timeline-list">
           {transactions.map((tx) => (

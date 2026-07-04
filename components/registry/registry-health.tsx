@@ -14,13 +14,19 @@ const cards: Array<{ label: string; value: keyof RegistryHealthModel }> = [
 
 export function RegistryHealth({ health }: { health: RegistryHealthModel }) {
   return (
-    <div className="health-grid" aria-label="Registry status">
-      {cards.map((card) => (
-        <div className="health-card" key={card.value}>
-          <span>{card.label}</span>
-          <strong>{health[card.value]}</strong>
-        </div>
-      ))}
-    </div>
+    <section className="registry-status" aria-label="Registry status">
+      <div className="panel-heading">
+        <span>Registry Status</span>
+        <h2>Live coverage from the official Sepolia registry</h2>
+      </div>
+      <div className="health-grid">
+        {cards.map((card) => (
+          <div className="health-card" key={card.value}>
+            <span>{card.label}</span>
+            <strong>{health[card.value]}</strong>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

@@ -7,6 +7,7 @@ import { GuidedWorkflow } from "@/components/registry/guided-workflow";
 import { PairCard } from "@/components/registry/pair-card";
 import { RegistryHealth } from "@/components/registry/registry-health";
 import { TransactionTimeline } from "@/components/registry/transaction-timeline";
+import { Reveal } from "@/components/ui/reveal";
 import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
 import {
   filterRegistryPairs,
@@ -48,11 +49,11 @@ export function RegistryExplorer() {
     <section className="registry-section" id="registry-explorer">
       <div className="section-header">
         <div>
-          <h2>Registry Explorer</h2>
+          <span className="section-kicker">Registry Console</span>
+          <h2>Official wrapper pairs, ready for action</h2>
           <p>
-            Live Sepolia reads come from the official wrapper registry. Local known-pair metadata
-            only enriches display labels, public mock faucet status, and restricted mint labels.
-            Unknown or system pairs stay visible for complete registry coverage.
+            Browse every pair returned by the official Sepolia registry. Known metadata enriches
+            labels and faucet access while the live registry remains the source of truth.
           </p>
         </div>
         <div className="registry-address">
@@ -61,9 +62,15 @@ export function RegistryExplorer() {
         </div>
       </div>
 
-      <GuidedWorkflow />
-      <TransactionTimeline />
-      <RegistryHealth health={health} />
+      <Reveal>
+        <GuidedWorkflow />
+      </Reveal>
+      <Reveal>
+        <TransactionTimeline />
+      </Reveal>
+      <Reveal>
+        <RegistryHealth health={health} />
+      </Reveal>
 
       <div className="toolbar">
         <label className="search-box">
@@ -95,13 +102,13 @@ export function RegistryExplorer() {
 
       {error ? (
         <div className="error-panel">
-          Registry read failed: {error.message}. Confirm your RPC can read Sepolia and that the
-          official registry ABI still exposes getTokenConfidentialTokenPairs.
+          Registry read failed: {error.message}. Confirm your wallet or RPC can read Sepolia, then
+          refresh the console.
         </div>
       ) : null}
 
       {!error && isRegistryLoading ? (
-        <div className="empty-state">Reading official Sepolia registry...</div>
+        <div className="empty-state">Loading official Sepolia registry pairs...</div>
       ) : null}
 
       {!error && !isRegistryLoading && filteredPairs.length === 0 ? (
@@ -110,11 +117,15 @@ export function RegistryExplorer() {
 
       <div className="pair-grid" aria-busy={isValidityLoading}>
         {filteredPairs.map((pair) => (
-          <PairCard pair={pair} key={pair.id} />
+          <Reveal className="pair-reveal" key={pair.id}>
+            <PairCard pair={pair} />
+          </Reveal>
         ))}
       </div>
 
-      <DeveloperPanel />
+      <Reveal>
+        <DeveloperPanel />
+      </Reveal>
     </section>
   );
 }

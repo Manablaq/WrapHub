@@ -165,7 +165,7 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
       <div className="action-panel-header">
         <div>
           <span>Confidential Balance Inspector</span>
-          <strong>Decrypt your ERC-7984 balance</strong>
+          <strong>Inspect your ERC-7984 balance locally</strong>
         </div>
       </div>
 
@@ -196,8 +196,8 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
       </button>
 
       <div className="inline-status">
-        EIP-712 signature authorizes local user-decryption. The clear balance is not posted
-        on-chain.
+        EIP-712 authorization enables local user-decryption. The clear balance is never posted
+        on-chain by WrapHub.
       </div>
 
       {error ? (
@@ -224,7 +224,7 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
         <div className="action-panel-header">
           <div>
             <span>Unwrap confidential token</span>
-            <strong>Convert ERC-7984 back to ERC-20</strong>
+            <strong>Settle ERC-7984 back to ERC-20</strong>
           </div>
         </div>
 

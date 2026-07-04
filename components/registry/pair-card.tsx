@@ -58,10 +58,18 @@ function classificationBadge(pair: EnrichedRegistryPair) {
 }
 
 export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
+  const cardTone =
+    pair.validity === "revoked"
+      ? "invalid"
+      : pair.classification === "known-official"
+        ? "trusted"
+        : pair.classification;
+
   return (
-    <article className="pair-card">
+    <article className={`pair-card ${cardTone}`}>
       <div className="pair-card-header">
         <div className="token-title">
+          <span>{pair.classification === "known-official" ? "Official wrapper pair" : "Registry pair"}</span>
           <h3>{pair.symbol}</h3>
           <p>{pair.name}</p>
         </div>
@@ -90,12 +98,12 @@ export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
 
       <div className="address-list">
         <div className="address-row">
-          <span>Wrapper</span>
+          <span>ERC-7984 wrapper</span>
           <code title={pair.wrapperAddress}>{shortenAddress(pair.wrapperAddress, 10, 8)}</code>
           <AddressActions address={pair.wrapperAddress} />
         </div>
         <div className="address-row">
-          <span>Underlying</span>
+          <span>Underlying ERC-20</span>
           <code title={pair.underlyingAddress}>
             {shortenAddress(pair.underlyingAddress, 10, 8)}
           </code>

@@ -1,6 +1,12 @@
-import { ArrowDown, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 
-const steps = ["Faucet", "Approve", "Wrap", "Decrypt", "Unwrap"];
+const steps = [
+  "Public mock faucet",
+  "Approve wrapper",
+  "Wrap confidentially",
+  "Inspect balance",
+  "Unwrap",
+];
 
 export function GuidedWorkflow() {
   return (
@@ -9,8 +15,8 @@ export function GuidedWorkflow() {
         <span>Guided Workflow</span>
         <h2>Fastest test path: cUSDCMock</h2>
         <p>
-          Use the public mock faucet, mint and wrap <strong>0.01</strong>, inspect the
-          confidential balance locally, then unwrap <strong>0.005</strong> back to ERC-20.
+          Use <strong>0.01</strong> for wrap and <strong>0.005</strong> for unwrap when testing.
+          The flow exercises every production action without leaving Sepolia.
         </p>
       </div>
       <div className="workflow-steps">
@@ -18,7 +24,7 @@ export function GuidedWorkflow() {
           <div className="workflow-step" key={step}>
             <CheckCircle2 size={15} />
             <span>{step}</span>
-            {index < steps.length - 1 ? <ArrowDown size={14} /> : null}
+            {index < steps.length - 1 ? <ArrowRight className="workflow-arrow" size={14} /> : null}
           </div>
         ))}
       </div>

@@ -18,10 +18,11 @@ export function SiteHeader() {
           <span className="brand-mark">W</span>
           <span className="brand-text">
             <strong>WrapHub</strong>
-            <span>Confidential Wrapper Registry</span>
+            <span>Sepolia confidential console</span>
           </span>
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
+          <a href="#how-it-works">How it works</a>
           <a href="#registry-explorer">Registry</a>
           <a href="#developer-console">Developer Console</a>
         </nav>
