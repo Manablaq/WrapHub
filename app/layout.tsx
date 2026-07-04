@@ -5,8 +5,8 @@ import { AppProviders } from "@/components/layout/app-providers";
 import { SiteHeader } from "@/components/layout/site-header";
 
 export const metadata: Metadata = {
-  title: "WrapHub | Confidential Wrapper Registry",
-  description: "Sepolia registry explorer for official ERC-20 to ERC-7984 wrapper pairs.",
+  title: "WrapHub | Confidential Wrapper Console",
+  description: "Private token flows for official ERC-20 ↔ ERC-7984 wrapper pairs on Sepolia.",
 };
 
 export default function RootLayout({
