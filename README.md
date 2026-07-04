@@ -1,6 +1,6 @@
 # WrapHub
 
-WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. Phase 3 adds ERC-7984 confidential balance inspection and Zama EIP-712 user-decryption. It does not deploy custom wrappers or fake registries.
+WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. Phase 4 adds unwrap support so users can convert ERC-7984 confidential wrapper balances back into the underlying ERC-20. It does not deploy custom wrappers or fake registries.
 
 ## Official Registry
 
@@ -25,6 +25,7 @@ WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Develo
 - Official wrapper `wrap(address,uint256)` action
 - ERC-7984 encrypted balance handle reads through `confidentialBalanceOf(address)`
 - Zama EIP-712 user-decryption for connected-user ERC-7984 balances
+- ERC-7984 to ERC-20 unwrap through the official wrapper request/finalize flow
 
 ## Wrapper Function
 
@@ -52,12 +53,33 @@ The frontend uses `@zama-fhe/react-sdk@3.2.0` and `@zama-fhe/sdk@3.2.0`:
 
 Decrypted balances are displayed only in browser UI state. WrapHub does not post decrypted balances on-chain and does not store them in a backend.
 
+## Unwrap Flow
+
+OpenZeppelin `@openzeppelin/confidential-contracts@0.5.1` defines ERC7984 ERC-20 wrapper unwrapping as a request/finalize flow:
+
+```solidity
+function unwrap(
+  address from,
+  address to,
+  externalEuint64 encryptedAmount,
+  bytes calldata inputProof
+) external returns (bytes32);
+
+function finalizeUnwrap(
+  bytes32 unwrapRequestId,
+  uint64 unwrapAmountCleartext,
+  bytes calldata decryptionProof
+) external;
+```
+
+The implementation ABI also includes `unwrap(address from, address to, euint64 amount)` for already-authorized encrypted handles. WrapHub’s amount form uses the encrypted-input path through `@zama-fhe/react-sdk` `useUnshield(wrapperAddress)`, which encrypts the public amount as `euint64`, submits `unwrap`, waits for the `UnwrapRequested` event, public-decrypts the unwrap amount, and submits `finalizeUnwrap`. This is the flow that actually returns underlying ERC-20 to the user.
+
 ## Architecture
 
 - `app/`: Next.js App Router pages, layout, and global styles
 - `components/layout/`: app providers, header, wallet/network UI
 - `components/registry/`: registry explorer, pair cards, health panel, developer snippet
-- `hooks/`: client hooks for registry reads, ERC-20 reads, mint, approve, wrap, encrypted balance handle reads, and user-decryption
+- `hooks/`: client hooks for registry reads, ERC-20 reads, mint, approve, wrap, encrypted balance handle reads, user-decryption, and unwrap
 - `lib/contracts/`: official registry ABI, ERC-20 ABI, ERC7984 ABI, and ERC7984 ERC-20 wrapper ABI
 - `lib/registry/`: pair enrichment, filters, health metrics, snippets, typed models
 - `lib/tokens/`: known official Sepolia pair metadata
@@ -110,4 +132,4 @@ npm run build
 - [x] Implement wrap transaction flow
 - [x] Implement ERC-7984 encrypted balance handle reading
 - [x] Implement EIP-712 user-decryption flow
-- [ ] Implement unwrap transaction flow
+- [x] Implement unwrap transaction flow

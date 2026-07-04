@@ -45,4 +45,14 @@ const grantPermit = useGrantPermit();
 await grantPermit.mutateAsync([wrapperAddress]);
 const decrypted = useDecryptValues([
   { encryptedValue: encryptedBalanceHandle, contractAddress: wrapperAddress },
-]);`;
+]);
+
+// Phase 4 unwrap / unshield:
+// OpenZeppelin ERC7984ERC20Wrapper exposes a two-step unwrap:
+// 1. unwrap(from, to, externalEuint64 encryptedAmount, bytes inputProof)
+// 2. finalizeUnwrap(unwrapRequestId, unwrapAmountCleartext, decryptionProof)
+// WrapHub uses @zama-fhe/react-sdk useUnshield(wrapperAddress), which
+// encrypts the public amount as euint64, submits unwrap, waits for
+// UnwrapRequested, public-decrypts the unwrap amount, and finalizes.
+const unshield = useUnshield(wrapperAddress);
+unshield.mutate({ amount });`;

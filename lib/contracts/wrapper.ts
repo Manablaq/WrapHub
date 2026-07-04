@@ -11,6 +11,47 @@ export const erc7984Erc20WrapperAbi = [
   },
   {
     type: "function",
+    name: "unwrap",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "encryptedAmount", type: "bytes32" },
+      { name: "inputProof", type: "bytes" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "unwrap",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "bytes32" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "finalizeUnwrap",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "unwrapRequestId", type: "bytes32" },
+      { name: "unwrapAmountCleartext", type: "uint64" },
+      { name: "decryptionProof", type: "bytes" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "unwrapAmount",
+    stateMutability: "view",
+    inputs: [{ name: "unwrapRequestId", type: "bytes32" }],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "underlying",
     stateMutability: "view",
     inputs: [],

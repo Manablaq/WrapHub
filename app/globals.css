@@ -616,6 +616,11 @@ h1 {
   color: var(--danger);
 }
 
+.inline-status.success {
+  border-color: rgba(110, 231, 168, 0.35);
+  color: var(--success);
+}
+
 .balance-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -737,6 +742,13 @@ h1 {
   display: block;
   margin-top: 5px;
   color: var(--muted);
+}
+
+.unwrap-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
 }
 
 .spin {
