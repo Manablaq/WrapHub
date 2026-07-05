@@ -23,7 +23,7 @@ function writeWatchlist(ids: readonly string[]) {
   window.dispatchEvent(new Event(WATCHLIST_EVENT));
 }
 
-export function useWatchlist() {
+export function useWatchlist(chainId?: number) {
   const [watchedPairIds, setWatchedPairIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -39,6 +39,13 @@ export function useWatchlist() {
     };
   }, []);
 
+  const scopedWatchedPairIds = useMemo(
+    () =>
+      chainId
+        ? watchedPairIds.filter((pairId) => pairId.startsWith(`${chainId}-`))
+        : watchedPairIds,
+    [chainId, watchedPairIds],
+  );
   const watchedSet = useMemo(() => new Set(watchedPairIds), [watchedPairIds]);
 
   const isWatched = useCallback((pairId: string) => watchedSet.has(pairId), [watchedSet]);
@@ -53,8 +60,8 @@ export function useWatchlist() {
   }, []);
 
   return {
-    watchedPairIds,
-    watchedCount: watchedPairIds.length,
+    watchedPairIds: scopedWatchedPairIds,
+    watchedCount: scopedWatchedPairIds.length,
     isWatched,
     toggleWatched,
   };

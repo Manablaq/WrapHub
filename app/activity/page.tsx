@@ -11,7 +11,7 @@ export default function ActivityPage() {
             <h1>Local transaction operations.</h1>
             <p>
               Review submitted and confirmed wallet actions stored locally in this browser, with
-              direct Sepolia Etherscan links.
+              direct network-specific Etherscan links.
             </p>
           </div>
         </div>

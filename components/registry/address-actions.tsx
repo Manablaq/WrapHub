@@ -3,10 +3,11 @@
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import type { Address } from "viem";
-import { sepoliaAddressUrl } from "@/lib/format";
+import { addressExplorerUrl, getNetworkOrDefault } from "@/lib/networks/supported-networks";
 
-export function AddressActions({ address }: { address: Address }) {
+export function AddressActions({ address, chainId }: { address: Address; chainId?: number }) {
   const [copied, setCopied] = useState(false);
+  const network = getNetworkOrDefault(chainId);
 
   async function copyAddress() {
     try {
@@ -35,11 +36,11 @@ export function AddressActions({ address }: { address: Address }) {
       </button>
       <a
         className="icon-button"
-        href={sepoliaAddressUrl(address)}
+        href={addressExplorerUrl(address, chainId)}
         target="_blank"
         rel="noreferrer"
-        aria-label="Open address on Sepolia Etherscan"
-        title="Open on Sepolia Etherscan"
+        aria-label={`Open address on ${network.name} Etherscan`}
+        title={`Open on ${network.name} Etherscan`}
       >
         <ExternalLink size={16} />
       </a>

@@ -15,7 +15,7 @@ export function PortfolioSection() {
       ) : null}
       {error ? (
         <div className="portfolio-empty warning">
-          Portfolio and readiness data are unavailable until the Sepolia registry can be read.
+          Portfolio and readiness data are unavailable until the active registry can be read.
         </div>
       ) : null}
     </Reveal>

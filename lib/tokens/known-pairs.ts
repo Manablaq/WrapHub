@@ -1,6 +1,8 @@
 import type { Address } from "viem";
+import { DEFAULT_CHAIN_ID } from "@/lib/networks/supported-networks";
 
 export type KnownPairMetadata = {
+  chainId: number;
   symbol: string;
   name: string;
   wrapperAddress: Address;
@@ -12,6 +14,7 @@ export type KnownPairMetadata = {
 
 export const knownPairs = [
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "cUSDCMock",
     name: "Confidential USDC Mock",
     wrapperAddress: "0x7c5BF43B851c1dff1a4feE8dB225b87f2C223639",
@@ -21,6 +24,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "cUSDTMock",
     name: "Confidential USDT Mock",
     wrapperAddress: "0x4E7B06D78965594eB5EF5414c357ca21E1554491",
@@ -30,6 +34,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "cWETHMock",
     name: "Confidential WETH Mock",
     wrapperAddress: "0x46208622DA27d91db4f0393733C8BA082ed83158",
@@ -39,6 +44,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "cBRONMock",
     name: "Confidential BRON Mock",
     wrapperAddress: "0xaa5612FA27c927a0c7961f5AEFEE5ba3A0F9C891",
@@ -48,6 +54,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "cZAMAMock",
     name: "Confidential ZAMA Mock",
     wrapperAddress: "0xf2D628d2598aF4eAF94CB76a437Ff86CA78FfbFB",
@@ -57,6 +64,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "ctGBPMock",
     name: "Confidential Test GBP Mock",
     wrapperAddress: "0xfCE5c7069c5525eF6c8C2b2E35A745bA20a2F7CC",
@@ -66,6 +74,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "cXAUtMock",
     name: "Confidential XAUt Mock",
     wrapperAddress: "0xe4FcF848739845BC81Dee1d5352cf3844F0a60C7",
@@ -75,6 +84,7 @@ export const knownPairs = [
     source: "zama-protocol-apps",
   },
   {
+    chainId: DEFAULT_CHAIN_ID,
     symbol: "ctGBP",
     name: "Confidential Test GBP",
     wrapperAddress: "0x167DC962808B32CFFFc7e14B5018c0bE06A3A208",
@@ -85,17 +95,17 @@ export const knownPairs = [
   },
 ] as const satisfies readonly KnownPairMetadata[];
 
-const pairKey = (underlying: Address, wrapper: Address) =>
-  `${underlying.toLowerCase()}:${wrapper.toLowerCase()}`;
+const pairKey = (chainId: number, underlying: Address, wrapper: Address) =>
+  `${chainId}:${underlying.toLowerCase()}:${wrapper.toLowerCase()}`;
 
 export const normalizeAddress = (address: Address) => address.toLowerCase();
 
 export const knownPairByRegistryKey = new Map(
-  knownPairs.map((pair) => [pairKey(pair.underlyingAddress, pair.wrapperAddress), pair]),
+  knownPairs.map((pair) => [pairKey(pair.chainId, pair.underlyingAddress, pair.wrapperAddress), pair]),
 );
 
-export function getKnownPair(underlyingAddress: Address, wrapperAddress: Address) {
-  return knownPairByRegistryKey.get(pairKey(underlyingAddress, wrapperAddress));
+export function getKnownPair(chainId: number, underlyingAddress: Address, wrapperAddress: Address) {
+  return knownPairByRegistryKey.get(pairKey(chainId, underlyingAddress, wrapperAddress));
 }
 
 export type KnownPairResolution = {
@@ -108,8 +118,9 @@ export type KnownPairResolution = {
 export function resolveKnownPairFromRegistryAddresses(
   firstAddress: Address,
   secondAddress: Address,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): KnownPairResolution {
-  const direct = getKnownPair(firstAddress, secondAddress);
+  const direct = getKnownPair(chainId, firstAddress, secondAddress);
 
   if (direct) {
     return {
@@ -120,7 +131,7 @@ export function resolveKnownPairFromRegistryAddresses(
     };
   }
 
-  const reversed = getKnownPair(secondAddress, firstAddress);
+  const reversed = getKnownPair(chainId, secondAddress, firstAddress);
 
   if (reversed) {
     return {

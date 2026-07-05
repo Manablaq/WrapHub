@@ -2,7 +2,8 @@
 
 import { Check, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { sepoliaTxUrl, shortenBytes32 } from "@/lib/format";
+import { shortenBytes32 } from "@/lib/format";
+import { getNetworkOrDefault, txExplorerUrl } from "@/lib/networks/supported-networks";
 import { useTransactionHistory, type TransactionAction } from "@/hooks/use-transaction-history";
 
 const actionLabels: Record<TransactionAction, string> = {
@@ -78,7 +79,9 @@ export function TransactionTimeline() {
   }, []);
 
   async function copyAllTxLinks() {
-    const links = filteredTransactions.map((tx) => sepoliaTxUrl(tx.hash)).join("\n");
+    const links = filteredTransactions
+      .map((tx) => txExplorerUrl(tx.hash, tx.chainId))
+      .join("\n");
 
     try {
       if (!navigator.clipboard) {
@@ -105,7 +108,7 @@ export function TransactionTimeline() {
         <div>
           <span>Local Session</span>
           <h2>Session Activity</h2>
-          <p>Activity is stored locally in this browser with direct Sepolia Etherscan links.</p>
+          <p>Activity is stored locally in this browser with network-specific Etherscan links.</p>
         </div>
         <div className="timeline-actions">
           <button
@@ -168,12 +171,18 @@ export function TransactionTimeline() {
               <div>
                 <strong>{actionLabels[tx.action]}</strong>
                 <span>
-                  {tx.symbol} · {relativeTimestamp(tx.updatedAt, now)}
+                  {tx.symbol} · {getNetworkOrDefault(tx.chainId).shortName} ·{" "}
+                  {relativeTimestamp(tx.updatedAt, now)}
                 </span>
               </div>
               <code title={tx.hash}>{shortenBytes32(tx.hash)}</code>
               <span className={`timeline-status ${tx.status}`}>{tx.status}</span>
-              <a href={sepoliaTxUrl(tx.hash)} target="_blank" rel="noreferrer" title="Open tx">
+              <a
+                href={txExplorerUrl(tx.hash, tx.chainId)}
+                target="_blank"
+                rel="noreferrer"
+                title="Open tx"
+              >
                 <ExternalLink size={15} />
               </a>
             </div>

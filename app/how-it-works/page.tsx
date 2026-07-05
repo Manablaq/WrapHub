@@ -4,7 +4,7 @@ import { Reveal } from "@/components/ui/reveal";
 const workflowCards = [
   {
     title: "Discover",
-    description: "Read official ERC-20 ↔ ERC-7984 pairs directly from the Sepolia registry.",
+    description: "Read official ERC-20 ↔ ERC-7984 pairs directly from supported registries.",
     icon: DatabaseZap,
   },
   {
@@ -29,7 +29,7 @@ const workflowCards = [
 const protocolItems = [
   {
     title: "Registry source",
-    copy: "Official Sepolia Wrappers Registry.",
+    copy: "Official wrapper registry for each supported network.",
     icon: DatabaseZap,
   },
   {

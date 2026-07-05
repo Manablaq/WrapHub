@@ -47,11 +47,18 @@ export function filterRegistryPairs(
     return [
       pair.symbol,
       pair.name,
+      pair.displaySymbol,
+      pair.displayName,
+      pair.wrapperSymbol,
+      pair.wrapperName,
+      pair.underlyingSymbol,
+      pair.underlyingName,
       pair.wrapperAddress,
       pair.underlyingAddress,
       pair.validity,
       pair.mintAccess,
       pair.classification,
+      pair.metadataSource,
       pair.validationSource,
     ]
       .join(" ")

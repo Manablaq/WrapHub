@@ -3,10 +3,10 @@
 import { DatabaseZap, Eye, LockKeyhole, Network, ShieldCheck, Wallet } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useAccount, useChainId } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { PortfolioPairCard, type PortfolioPairSnapshot } from "@/components/portfolio/portfolio-pair-card";
 import { useWatchlist } from "@/hooks/use-watchlist";
 import { shortenAddress } from "@/lib/format";
+import { getNetworkOrDefault, getSupportedNetwork } from "@/lib/networks/supported-networks";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 
 type PortfolioOverviewProps = {
@@ -16,7 +16,7 @@ type PortfolioOverviewProps = {
 const intelligenceItems = [
   {
     title: "Registry source",
-    copy: "Official Sepolia Wrappers Registry.",
+    copy: "Official wrapper registry for the active supported network.",
     icon: DatabaseZap,
   },
   {
@@ -49,13 +49,17 @@ const intelligenceItems = [
 export function PortfolioOverview({ pairs }: PortfolioOverviewProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const isSepolia = chainId === sepolia.id;
-  const { watchedCount } = useWatchlist();
+  const activeNetwork = getSupportedNetwork(chainId) ?? getNetworkOrDefault();
+  const isSupportedNetwork = Boolean(getSupportedNetwork(chainId));
+  const { watchedCount } = useWatchlist(activeNetwork.chainId);
   const [snapshots, setSnapshots] = useState<Record<string, PortfolioPairSnapshot>>({});
 
   const knownOfficialPairs = useMemo(
-    () => pairs.filter((pair) => pair.classification === "known-official"),
-    [pairs],
+    () =>
+      pairs.filter(
+        (pair) => pair.classification === "known-official" && pair.chainId === activeNetwork.chainId,
+      ),
+    [activeNetwork.chainId, pairs],
   );
 
   const handleSnapshot = useCallback((snapshot: PortfolioPairSnapshot) => {
@@ -108,7 +112,11 @@ export function PortfolioOverview({ pairs }: PortfolioOverviewProps) {
         <div className="portfolio-wallet-card">
           <span>Connected wallet</span>
           <strong>{isConnected && address ? shortenAddress(address, 8, 6) : "Not connected"}</strong>
-          <small>{isConnected && !isSepolia ? "Switch to Sepolia" : "Supported network: Sepolia"}</small>
+          <small>
+            {isConnected && !isSupportedNetwork
+              ? "Switch to a supported network"
+              : `Active network: ${activeNetwork.name}`}
+          </small>
         </div>
       </div>
 
@@ -177,7 +185,7 @@ export function PortfolioOverview({ pairs }: PortfolioOverviewProps) {
               <article className="portfolio-position-card" key={pair.id}>
                 <div>
                   <span>Active holding</span>
-                  <h3>{pair.symbol}</h3>
+                  <h3>{pair.displaySymbol}</h3>
                 </div>
                 <div className="readiness-list">
                   {labels.map((label) => (

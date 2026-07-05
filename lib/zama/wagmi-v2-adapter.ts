@@ -82,11 +82,16 @@ class WagmiV2Signer extends BaseSigner {
   constructor(config: Config) {
     super(walletAccountFromWagmi(getAccount(config)));
     this.#config = config;
-    this.#unsubscribe = watchAccount(this.#config, {
-      onChange: (account) => {
-        this.walletAccount.setSnapshot(walletAccountFromWagmi(account));
-      },
-    });
+    try {
+      this.#unsubscribe = watchAccount(this.#config, {
+        onChange: (account) => {
+          this.walletAccount.setSnapshot(walletAccountFromWagmi(account));
+        },
+      });
+    } catch (error) {
+      console.warn("Wallet account subscription unavailable.", error);
+      this.#unsubscribe = () => {};
+    }
   }
 
   async signTypedData(typedData: EIP712TypedData): Promise<Hex> {

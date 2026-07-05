@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import { DEFAULT_CHAIN_ID } from "@/lib/networks/supported-networks";
 import { enrichRegistryPair } from "@/lib/registry/enrich";
 import { knownPairs, resolveKnownPairFromRegistryAddresses } from "@/lib/tokens/known-pairs";
 
@@ -54,6 +55,7 @@ export function runRegistryMetadataChecks(): MetadataCheckResult[] {
       isValid: true,
     },
     { status: "success", isValid: true, source: "registry-list" },
+    DEFAULT_CHAIN_ID,
   );
 
   const systemPair = enrichRegistryPair(
@@ -63,6 +65,7 @@ export function runRegistryMetadataChecks(): MetadataCheckResult[] {
       isValid: true,
     },
     { status: "success", isValid: true, source: "registry-list" },
+    DEFAULT_CHAIN_ID,
   );
 
   return [

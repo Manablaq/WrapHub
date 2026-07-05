@@ -5,17 +5,19 @@ import { formatUnits, parseUnits } from "viem";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { useConfidentialBalanceHandle } from "@/hooks/use-confidential-balance-handle";
 import { useDecryptConfidentialBalance } from "@/hooks/use-decrypt-confidential-balance";
 import { useUnwrapToken } from "@/hooks/use-unwrap-token";
-import { sepoliaTxUrl, shortenBytes32 } from "@/lib/format";
+import { shortenBytes32 } from "@/lib/format";
+import { getNetworkOrDefault, txExplorerUrl } from "@/lib/networks/supported-networks";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 import { useTransactionHistory } from "@/hooks/use-transaction-history";
 import {
   clearLocalDecryptedBalance,
   recordLocalDecryptedBalance,
 } from "@/hooks/use-local-decrypted-balances";
+import { getFriendlyUserDecryptionError } from "@/lib/zama/errors";
+import { isZeroHandle } from "@/lib/zama/handles";
 
 function formatDecryptedBalance(value: unknown, decimals: number) {
   if (typeof value === "bigint") {
@@ -29,28 +31,17 @@ function formatDecryptedBalance(value: unknown, decimals: number) {
   return null;
 }
 
-function friendlyError(error: Error | null | undefined) {
-  if (!error) {
-    return null;
-  }
-
-  const message = error.message.split("\n")[0] ?? "Decryption failed.";
-
-  if (message.toLowerCase().includes("user rejected")) {
-    return "Signature rejected in wallet.";
-  }
-
-  return message;
-}
-
 export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryPair }) {
   const [unwrapAmount, setUnwrapAmount] = useState("");
+  const [mainnetUnwrapConfirmed, setMainnetUnwrapConfirmed] = useState(false);
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const queryClient = useQueryClient();
   const { trackTransaction, updateTransactionStatus } = useTransactionHistory();
-  const isSepolia = chainId === sepolia.id;
-  const handleRead = useConfidentialBalanceHandle(pair.wrapperAddress, address);
+  const pairNetwork = getNetworkOrDefault(pair.chainId);
+  const isPairNetwork = chainId === pair.chainId;
+  const isMainnetPair = pairNetwork.environment === "mainnet";
+  const handleRead = useConfidentialBalanceHandle(pair.wrapperAddress, address, pair.chainId);
   const decrypt = useDecryptConfidentialBalance({
     wrapperAddress: pair.wrapperAddress,
     handle: handleRead.handle,
@@ -59,6 +50,7 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
   const processedUnwrapHash = useRef<`0x${string}` | null>(null);
 
   const decrypted = formatDecryptedBalance(decrypt.decryptedValue, handleRead.decimals);
+  const hasZeroHandle = isZeroHandle(handleRead.handle);
   const parsedUnwrapAmount = useMemo(() => {
     try {
       return unwrapAmount.trim() ? parseUnits(unwrapAmount.trim(), handleRead.decimals) : 0n;
@@ -85,21 +77,27 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
 
     return null;
   }, [decrypt.decryptedValue, parsedUnwrapAmount, unwrapAmount]);
-  const error = friendlyError(handleRead.error ?? decrypt.error);
-  const unwrapError = friendlyError(unwrap.error);
+  const error = hasZeroHandle
+    ? null
+    : getFriendlyUserDecryptionError(handleRead.error ?? decrypt.error);
+  const unwrapError = getFriendlyUserDecryptionError(unwrap.error, "Unwrap failed. Check wallet, network, or relayer connectivity.");
   const isBusy =
     handleRead.isLoading ||
     decrypt.isCheckingPermit ||
     decrypt.isGrantingPermit ||
     decrypt.isDecrypting;
   const isUnwrapping = unwrap.isPending;
+  const canWriteMainnet = !isMainnetPair || mainnetUnwrapConfirmed;
   const canUnwrap =
     isConnected &&
-    isSepolia &&
+    isPairNetwork &&
+    canWriteMainnet &&
     parsedUnwrapAmount !== null &&
     parsedUnwrapAmount > 0n &&
     !unwrapAmountError &&
     !isUnwrapping;
+  const canDecrypt =
+    isConnected && isPairNetwork && Boolean(handleRead.handle) && !hasZeroHandle && !isBusy;
 
   useEffect(() => {
     const finalizeHash = unwrap.data?.txHash;
@@ -111,19 +109,29 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
     processedUnwrapHash.current = finalizeHash;
     setUnwrapAmount("");
     if (address) {
-      clearLocalDecryptedBalance(address, pair.wrapperAddress);
+      clearLocalDecryptedBalance(pair.chainId, address, pair.wrapperAddress);
     }
     decrypt.reset();
     void handleRead.refetch();
     void queryClient.invalidateQueries();
-  }, [address, decrypt, handleRead, pair.wrapperAddress, queryClient, unwrap.data?.txHash, unwrap.isSuccess]);
+  }, [
+    address,
+    decrypt,
+    handleRead,
+    pair.chainId,
+    pair.wrapperAddress,
+    queryClient,
+    unwrap.data?.txHash,
+    unwrap.isSuccess,
+  ]);
 
   useEffect(() => {
     if (unwrap.requestHash) {
       trackTransaction({
         hash: unwrap.requestHash,
+        chainId: pair.chainId,
         action: "unwrap-request",
-        symbol: pair.symbol,
+        symbol: pair.displaySymbol,
         status: "submitted",
       });
     }
@@ -131,14 +139,15 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
     if (unwrap.finalizeHash) {
       trackTransaction({
         hash: unwrap.finalizeHash,
+        chainId: pair.chainId,
         action: "unwrap-finalize",
-        symbol: pair.symbol,
+        symbol: pair.displaySymbol,
         status: unwrap.isSuccess ? "confirmed" : "submitted",
       });
     }
 
     if (unwrap.isSuccess && unwrap.finalizeHash) {
-      updateTransactionStatus(unwrap.finalizeHash, "confirmed");
+      updateTransactionStatus(unwrap.finalizeHash, "confirmed", pair.chainId);
     }
 
     if (
@@ -147,10 +156,11 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
         unwrap.phase === "finalize-submitted" ||
         unwrap.isSuccess)
     ) {
-      updateTransactionStatus(unwrap.requestHash, "confirmed");
+      updateTransactionStatus(unwrap.requestHash, "confirmed", pair.chainId);
     }
   }, [
-    pair.symbol,
+    pair.displaySymbol,
+    pair.chainId,
     trackTransaction,
     unwrap.finalizeHash,
     unwrap.isSuccess,
@@ -165,12 +175,20 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
     }
 
     recordLocalDecryptedBalance({
+      chainId: pair.chainId,
       accountAddress: address,
       wrapperAddress: pair.wrapperAddress,
       value: decrypt.decryptedValue.toString(),
       decimals: handleRead.decimals,
     });
-  }, [address, decrypt.decryptedValue, handleRead.decimals, pair.wrapperAddress, unwrap.isSuccess]);
+  }, [
+    address,
+    decrypt.decryptedValue,
+    handleRead.decimals,
+    pair.chainId,
+    pair.wrapperAddress,
+    unwrap.isSuccess,
+  ]);
 
   function submitUnwrap() {
     if (!canUnwrap || parsedUnwrapAmount === null) {
@@ -178,6 +196,14 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
     }
 
     unwrap.unwrap(parsedUnwrapAmount);
+  }
+
+  function submitDecrypt() {
+    if (!canDecrypt) {
+      return;
+    }
+
+    void decrypt.decrypt();
   }
 
   return (
@@ -192,9 +218,9 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
       {!isConnected ? (
         <div className="action-notice">Connect a wallet to inspect your confidential balance.</div>
       ) : null}
-      {isConnected && !isSepolia ? (
+      {isConnected && !isPairNetwork ? (
         <div className="action-notice warning">
-          Switch to Sepolia before reading or decrypting confidential balances.
+          Switch to {pair.networkName} before reading or decrypting confidential balances.
         </div>
       ) : null}
 
@@ -208,12 +234,18 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
       <button
         className="button secondary"
         type="button"
-        disabled={!isConnected || !isSepolia || !handleRead.handle || isBusy}
-        onClick={() => void decrypt.decrypt()}
+        disabled={!canDecrypt}
+        onClick={submitDecrypt}
       >
         {isBusy ? <Loader2 className="spin" size={15} /> : <Eye size={15} />}
         Decrypt my ERC-7984 balance
       </button>
+
+      {isConnected && isPairNetwork && hasZeroHandle ? (
+        <div className="inline-status">
+          No encrypted balance detected for this wallet on this token.
+        </div>
+      ) : null}
 
       <div className="inline-status">
         EIP-712 authorization enables local user-decryption. The clear balance is never posted
@@ -223,7 +255,13 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
       {error ? (
         <div className="inline-status danger">
           <AlertCircle size={15} />
-          {error}
+          <span>{error.message}</span>
+          {error.details && error.details !== error.message ? (
+            <details>
+              <summary>Error details</summary>
+              <span>{error.details}</span>
+            </details>
+          ) : null}
         </div>
       ) : null}
 
@@ -277,6 +315,26 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
           </div>
         ) : null}
 
+        {isMainnetPair ? (
+          <>
+            <div className="action-notice warning">
+              Ethereum Mainnet unwraps move real assets back to the ERC-20 token. Verify the amount
+              before continuing.
+            </div>
+            <label className="mainnet-confirmation">
+              <input
+                type="checkbox"
+                checked={mainnetUnwrapConfirmed}
+                onChange={(event) => setMainnetUnwrapConfirmed(event.target.checked)}
+              />
+              <span>
+                I understand Ethereum Mainnet uses real assets, and I have verified the token
+                address and amount.
+              </span>
+            </label>
+          </>
+        ) : null}
+
         <button
           className="button primary"
           type="button"
@@ -299,7 +357,13 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
         {unwrapError ? (
           <div className="inline-status danger">
             <AlertCircle size={15} />
-            {unwrapError}
+            <span>{unwrapError.message}</span>
+            {unwrapError.details && unwrapError.details !== unwrapError.message ? (
+              <details>
+                <summary>Error details</summary>
+                <span>{unwrapError.details}</span>
+              </details>
+            ) : null}
           </div>
         ) : null}
 
@@ -307,7 +371,7 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
           <div className="tx-status">
             <CheckCircle2 size={15} />
             <span>{unwrap.isSuccess ? "Unwrap confirmed" : "Unwrap submitted"}</span>
-            <a href={sepoliaTxUrl(unwrap.unwrapHash)} target="_blank" rel="noreferrer">
+            <a href={txExplorerUrl(unwrap.unwrapHash, pair.chainId)} target="_blank" rel="noreferrer">
               View tx
             </a>
           </div>

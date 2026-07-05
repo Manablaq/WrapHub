@@ -6,7 +6,8 @@ import { SiteHeader } from "@/components/layout/site-header";
 
 export const metadata: Metadata = {
   title: "WrapHub | Confidential Wrapper Console",
-  description: "Private token flows for official ERC-20 ↔ ERC-7984 wrapper pairs on Sepolia.",
+  description:
+    "Private token flows for official ERC-20 ↔ ERC-7984 wrapper pairs on Sepolia and Ethereum Mainnet.",
 };
 
 export default function RootLayout({

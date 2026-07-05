@@ -1,20 +1,25 @@
-import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
+import { SUPPORTED_NETWORKS } from "@/lib/networks/supported-networks";
 
 export const registryReadSnippet = `import { createPublicClient, http } from "viem";
-import { sepolia } from "viem/chains";
+import { mainnet, sepolia } from "viem/chains";
 import { registryAbi } from "@/lib/contracts/registry";
 import { erc20Abi } from "@/lib/contracts/erc20";
 import { erc7984Abi } from "@/lib/contracts/erc7984";
 import { erc7984Erc20WrapperAbi } from "@/lib/contracts/wrapper";
 import { useGrantPermit, useDecryptValues, useUnshield } from "@zama-fhe/react-sdk";
 
+const registries = {
+${SUPPORTED_NETWORKS.map((network) => `  ${network.chainId}: "${network.registryAddress}",`).join("\n")}
+};
+
+const activeChain = sepolia; // or mainnet
 const client = createPublicClient({
-  chain: sepolia,
+  chain: activeChain,
   transport: http(),
 });
 
 const pairs = await client.readContract({
-  address: "${OFFICIAL_REGISTRY_ADDRESS}",
+  address: registries[activeChain.id],
   abi: registryAbi,
   functionName: "getTokenConfidentialTokenPairs",
 });
@@ -34,6 +39,7 @@ const pairs = await client.readContract({
 // normalizes it back to { underlyingAddress, wrapperAddress } and marks the
 // diagnostic flag. Local metadata enriches labels and faucet/restricted status;
 // the live registry remains the source of truth and unknown pairs are shown.
+// Local custom pairs are appended after official registry results and marked.
 
 // Phase 2 transaction functions:
 // ERC-20: balanceOf(address), allowance(address,address), approve(address,uint256)

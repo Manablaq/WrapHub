@@ -1,14 +1,24 @@
 # WrapHub
 
-WrapHub is a Sepolia-first Confidential Wrapper Registry App for the Zama Developer Program Bounty Track. It discovers official Sepolia wrapper pairs, lets users mint official public mocks, approve, wrap, decrypt confidential balances, and unwrap back to ERC-20. It does not deploy custom wrappers or fake registries.
+WrapHub is a multi-network Confidential Wrapper Registry App for official Zama ERC-20 ↔ ERC-7984 wrapper environments. It discovers official wrapper pairs on Sepolia and Ethereum Mainnet, lets users mint official Sepolia public mocks, approve, wrap, decrypt confidential balances, and unwrap back to ERC-20. It does not deploy custom wrappers or fake registries.
 
-## Official Registry
+- Live URL: deployment URL not set in this repository yet
+- GitHub repo: `https://github.com/Manablaq/WrapHub`
 
-- Sepolia registry: `0x2f0750Bbb0A246059d80e94c454586a7F27a128e`
-- Source of truth: `getTokenConfidentialTokenPairs` on the official registry contract
+## Supported Networks
+
+- Sepolia testnet registry: `0x2f0750Bbb0A246059d80e94c454586a7F27a128e`
+- Ethereum Mainnet registry: `0xeb5015fF021DB115aCe010f23F55C2591059bBA0`
+- Source of truth: `getTokenConfidentialTokenPairs` on the active network's official registry contract
 - Registry return shape: `{ tokenAddress, confidentialTokenAddress, isValid }[]`
 - Validation: the list return includes `isValid`; standalone checks use `isConfidentialTokenValid(confidentialTokenAddress)`
-- Local metadata: display enrichment only for known symbols, faucet support, and restricted mint labels
+- Local metadata: display enrichment only for known symbols, faucet support, restricted mint labels, and optional custom/development pairs
+- Faucet availability: Sepolia official cTokenMock underlyings only. Ethereum Mainnet has no public faucet and may involve real assets.
+
+## Network Modes
+
+- Sepolia is the testnet workflow. Official public cTokenMock underlyings expose the mock faucet, so users can mint test ERC-20, approve, wrap, decrypt, and unwrap.
+- Ethereum Mainnet is Real Asset Mode. There is no public faucet, pair cards show real-asset safety context, and approve/wrap/unwrap require an explicit user confirmation checkbox before write actions are enabled.
 
 ## Reviewer Walkthrough
 
@@ -21,7 +31,7 @@ Recommended pair: `cUSDCMock`.
 5. Click `Wrap into confidential token`.
 6. In Confidential Balance Inspector, click `Decrypt my ERC-7984 balance`.
 7. Enter `0.005` and click `Unwrap to ERC-20`.
-8. Use Session Activity to inspect submitted and confirmed Sepolia transactions.
+8. Use Session Activity to inspect submitted and confirmed network-specific transactions.
 
 Decrypted balances stay local to the browser UI. Transaction history is stored only in browser `localStorage`; there is no backend.
 
@@ -29,12 +39,12 @@ Decrypted balances stay local to the browser UI. Transaction history is stored o
 
 - Next.js app with TypeScript
 - RainbowKit/wagmi wallet connection
-- Sepolia-only wallet/network configuration
+- Sepolia and Ethereum Mainnet wallet/network configuration
 - Dark landing page and registry explorer
-- Live official registry read for ERC-20 to ERC-7984 pairs
+- Live official registry read for ERC-20 to ERC-7984 pairs on the active supported network
 - Known-pair metadata enrichment from `lib/tokens/known-pairs.ts`
-- Pair cards with symbol, name, wrapper address, underlying address, validity, faucet support, copy actions, and Etherscan links
-- Filters for all pairs, valid only, faucet-supported, restricted, and unknown/revoked
+- Pair cards with symbol, name, wrapper address, underlying address, validity, metadata source, network-specific faucet status, copy actions, and Etherscan links
+- Filters for all pairs, valid only, Sepolia faucet-supported, restricted, and unknown/revoked
 - Registry health panel
 - Registry quality diagnostics for known official, valid, revoked, validation unknown/read failed, public faucet, restricted mint, and unknown/system pairs
 - Developer Console registry integration details
@@ -43,6 +53,8 @@ Decrypted balances stay local to the browser UI. Transaction history is stored o
 - Official wrapper `wrap(address,uint256)` action
 - ERC-7984 encrypted balance handle reads through `confidentialBalanceOf(address)`
 - Zama EIP-712 user-decryption for connected-user ERC-7984 balances
+- Universal ERC-7984 balance inspector for any connected-wallet token address
+- Network Address Matrix for wrapper and underlying addresses across Sepolia and Ethereum Mainnet
 - ERC-7984 to ERC-20 unwrap through the official wrapper request/finalize flow
 
 ## Wrapper Function
@@ -53,7 +65,7 @@ WrapHub uses the OpenZeppelin confidential wrapper interface from `@openzeppelin
 function wrap(address to, uint256 amount) external returns (euint64);
 ```
 
-The UI approves the official wrapper address as spender for the underlying ERC-20, then calls `wrap(connectedUserAddress, amount)` on the wrapper returned by the official Sepolia registry.
+The UI approves the official wrapper address as spender for the underlying ERC-20, then calls `wrap(connectedUserAddress, amount)` on the wrapper returned by the active official registry.
 
 ## Confidential Balance Decryption
 
@@ -65,11 +77,13 @@ function confidentialBalanceOf(address account) external view returns (euint64);
 
 The frontend uses `@zama-fhe/react-sdk@3.2.0` and `@zama-fhe/sdk@3.2.0`:
 
-- `ZamaProvider` with the wagmi adapter and the official Sepolia Zama relayer config
+- `ZamaProvider` with the wagmi adapter and the official Sepolia and Ethereum Mainnet Zama relayer config
 - `useGrantPermit` to request the EIP-712 wallet signature for the wrapper contract
 - `useDecryptValues` to decrypt `{ encryptedValue, contractAddress }`
 
 Decrypted balances are displayed only in browser UI state. WrapHub does not post decrypted balances on-chain and does not store them in a backend.
+
+The Universal ERC-7984 Balance Inspector on the Developer Console page accepts any ERC-7984 token address, reads `confidentialBalanceOf(connectedWallet)` on Sepolia or Ethereum Mainnet, and uses the same EIP-712 user-decryption flow. Registry membership is not required for local user-decryption. Unknown token metadata is shown as unknown, and no clear balance is displayed until the connected wallet authorizes decryption.
 
 ## Unwrap Flow
 
@@ -100,20 +114,77 @@ The implementation ABI also includes `unwrap(address from, address to, euint64 a
 - `hooks/`: client hooks for registry reads, ERC-20 reads, mint, approve, wrap, encrypted balance handle reads, user-decryption, and unwrap
 - `lib/contracts/`: official registry ABI, ERC-20 ABI, ERC7984 ABI, and ERC7984 ERC-20 wrapper ABI
 - `lib/registry/`: pair normalization, metadata checks, filters, health metrics, snippets, typed models
+- `lib/registry/local-pairs.ts`: optional custom/development pair config, merged after the official registry
+- `lib/networks/`: supported network registry addresses and explorer configuration
 - `lib/tokens/`: known official Sepolia pair metadata
 
 ## Registry Coverage and Labels
 
-The live registry remains the source of truth. WrapHub displays every pair returned by the registry, including unknown, revoked, invalid, placeholder, or system-looking entries. Local known-pair metadata is never used to replace the registry; it only enriches display names and labels.
+The live registry remains the source of truth. WrapHub displays every pair returned by the registry, including unknown, revoked, invalid, placeholder, or system-looking entries. Local known-pair metadata is never used to replace the registry; it only enriches display names and labels. Optional local custom pairs are appended as secondary entries and are clearly marked as local configuration.
 
-- `Known official wrapper`: the registry pair matches one of the local official Sepolia metadata entries by normalized lowercase addresses.
-- `Public mock faucet`: the underlying ERC-20 is one of the official public cTokenMock underlyings with `mint(address,uint256)` access.
+- `Known official wrapper`: the registry pair matches one of the local official metadata entries by normalized lowercase addresses and chain ID.
+- `Public mock faucet`: the underlying ERC-20 is one of the official Sepolia public cTokenMock underlyings with `mint(address,uint256)` access.
 - `Restricted mint`: the pair is known official metadata, but the underlying token does not expose a public test faucet.
+- `No public faucet`: Ethereum Mainnet pairs do not expose a public mock faucet.
 - `Registry-returned unknown`: the live registry returned the pair, but WrapHub does not have local official metadata for it.
 - `System / placeholder`: one side of the registry pair is a sentinel such as `0x0000000000000000000000000000000000000001`.
 - `Validation unavailable/read failed`: WrapHub could not confirm the registry validity flag; failed validation reads are not counted as invalid.
+- `Local config`: a custom or development-only pair from `lib/registry/local-pairs.ts`. Official onchain registry results remain primary.
 
 Metadata matching is case-insensitive and defensive against reversed input. Official registry results are normalized into `underlyingAddress` and `wrapperAddress` before rendering or transaction panels use them.
+
+Metadata source priority:
+
+1. Known official config.
+2. Local config metadata.
+3. Live onchain token metadata from wrapper and underlying token contracts.
+4. Metadata unavailable if all reads fail or return no usable values.
+
+## Network Address Matrix
+
+The Developer Console includes a Network Address Matrix showing wrapper and underlying ERC-20 addresses per supported network. It reads Sepolia and Ethereum Mainnet registries as the primary source, enriches display labels from known config, local config, or onchain token metadata where readable, and shows `Not listed` when a symbol or pair does not appear on a network.
+
+## How to add a new ERC-20 ↔ ERC-7984 pair
+
+There are two supported paths.
+
+### Official registry path
+
+Register the ERC-20 and ERC-7984 wrapper pair in the relevant official Wrappers Registry. WrapHub reads `getTokenConfidentialTokenPairs` from the active supported network, so newly registered onchain pairs appear automatically after the registry read refreshes.
+
+Use this path for production-visible pairs. The official registry remains the primary source of truth.
+
+### Local config path
+
+For local development, private testing, or custom environments, add a pair to `lib/registry/local-pairs.ts`. Local pairs are merged after official registry results and cannot hide registry-returned pairs.
+
+Example:
+
+```ts
+export const LOCAL_WRAPPER_PAIRS = [
+  {
+    chainId: 11155111,
+    underlyingAddress: "0x1111111111111111111111111111111111111111",
+    wrapperAddress: "0x2222222222222222222222222222222222222222",
+    symbol: "cLOCAL",
+    name: "Confidential Local Token",
+    decimals: 6,
+    network: "sepolia",
+    mintAccess: "unknown",
+    hasPublicFaucet: false,
+    source: "local-development",
+    notes: "Development-only pair for private testing.",
+  },
+] as const satisfies readonly LocalWrapperPairConfig[];
+```
+
+Then verify:
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
 ## Local Setup
 
@@ -128,9 +199,30 @@ Optional WalletConnect project ID:
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id npm run dev
 ```
 
+Recommended stable RPC provider:
+
+```bash
+NEXT_PUBLIC_ALCHEMY_API_KEY=your_public_alchemy_key npm run dev
+```
+
+WrapHub uses explicit HTTP polling RPC transports for Sepolia and Ethereum Mainnet. If
+`NEXT_PUBLIC_ALCHEMY_API_KEY` is configured, Alchemy is used as the primary RPC. Without Alchemy,
+the app uses explicit public RPC URLs from `lib/networks/supported-networks.ts`; production
+deployments should use a reliable provider for stable registry reads. Never commit private keys or
+server-only secrets to the app.
+
 Validation commands:
 
 ```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Production build/deployment commands:
+
+```bash
+npm install
 npm run lint
 npm run typecheck
 npm run build
@@ -149,13 +241,13 @@ npm run build
 | cXAUtMock | `0xe4FcF848739845BC81Dee1d5352cf3844F0a60C7` | `0x24377AE4AA0C45ecEe71225007f17c5D423dd940` | Public |
 | ctGBP | `0x167DC962808B32CFFFc7e14B5018c0bE06A3A208` | `0xf6Ef9ADB61A48E29E36bc873070A46A3D2667ff3` | Restricted |
 
-## Bounty Checklist
+## Requirement Checklist
 
-- [x] Surface every ERC-20 to ERC-7984 wrapper pair returned by the official Sepolia registry
+- [x] Surface every ERC-20 to ERC-7984 wrapper pair returned by official supported registries
 - [x] Add known-pair metadata enrichment without replacing the registry source of truth
 - [x] Normalize registry pairs by address and classify known, unknown, restricted, faucet, and system entries
 - [x] Use the official registry `isValid` flag instead of treating validation read failures as invalid
-- [x] Add Sepolia-only network guard and wallet connection
+- [x] Add Sepolia and Ethereum Mainnet wallet connection and network guard
 - [x] Add explorer filters, pair cards, health metrics, copy buttons, and Etherscan links
 - [x] Add developer read snippet
 - [x] Implement ERC-20 balance reading
@@ -165,14 +257,17 @@ npm run build
 - [x] Implement wrap transaction flow
 - [x] Implement ERC-7984 encrypted balance handle reading
 - [x] Implement EIP-712 user-decryption flow
+- [x] Implement universal ERC-7984 balance inspection for any token address on supported networks
 - [x] Implement unwrap transaction flow
+- [x] Include a Network Address Matrix for supported-network wrapper and underlying addresses
 
-## Implemented Bounty Requirements
+## Implemented Requirements
 
-- [x] Surface every ERC-20 to ERC-7984 wrapper pair returned by the official Sepolia registry
+- [x] Surface every ERC-20 to ERC-7984 wrapper pair returned by official supported registries
 - [x] Let users wrap any valid registry pair
 - [x] Let users unwrap official wrapper pairs through the request/finalize flow
 - [x] Let users decrypt ERC-7984 balances through Zama EIP-712 user-decryption
+- [x] Let users decrypt the connected-wallet balance for any ERC-7984 token address on supported networks
 - [x] Include a Sepolia faucet for official public cTokenMock underlyings
 - [x] Preserve registry coverage by showing unknown/revoked pairs instead of hiding them
 - [x] Include production UX states for disconnected wallet, wrong network, pending txs, errors, and confirmations

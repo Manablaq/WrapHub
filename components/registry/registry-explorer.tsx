@@ -1,11 +1,10 @@
 "use client";
 
 import { RefreshCcw, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PairCard } from "@/components/registry/pair-card";
 import { RegistryHealth } from "@/components/registry/registry-health";
 import { Reveal } from "@/components/ui/reveal";
-import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
 import {
   filterRegistryPairs,
   registryFilters,
@@ -15,7 +14,7 @@ import { useRegistryPairs } from "@/hooks/use-registry-pairs";
 import { useWatchlist } from "@/hooks/use-watchlist";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 
-function sortPairsForReview(pairs: EnrichedRegistryPair[]) {
+function sortPairsForDisplay(pairs: EnrichedRegistryPair[]) {
   return [...pairs].sort((a, b) => {
     const aScore =
       (a.classification === "known-official" ? 0 : a.classification === "registry-unknown" ? 3 : 5) +
@@ -28,21 +27,43 @@ function sortPairsForReview(pairs: EnrichedRegistryPair[]) {
       return aScore - bScore;
     }
 
-    return a.symbol.localeCompare(b.symbol);
+    return a.displaySymbol.localeCompare(b.displaySymbol);
   });
 }
 
 export function RegistryExplorer() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<RegistryFilter>("all");
-  const { pairs, health, isLoading, isRegistryLoading, isValidityLoading, error, refetch } =
-    useRegistryPairs();
-  const { watchedPairIds } = useWatchlist();
+  const {
+    pairs,
+    health,
+    isLoading,
+    isRegistryLoading,
+    isValidityLoading,
+    error,
+    refetch,
+    activeNetwork,
+    isUnsupportedNetwork,
+  } = useRegistryPairs();
+  const { watchedPairIds } = useWatchlist(activeNetwork.chainId);
+  const visibleFilters = useMemo(
+    () =>
+      activeNetwork.supportsPublicFaucet
+        ? registryFilters
+        : registryFilters.filter((item) => item.id !== "faucet"),
+    [activeNetwork.supportsPublicFaucet],
+  );
 
   const filteredPairs = useMemo(
-    () => sortPairsForReview(filterRegistryPairs(pairs, filter, search, watchedPairIds)),
+    () => sortPairsForDisplay(filterRegistryPairs(pairs, filter, search, watchedPairIds)),
     [filter, pairs, search, watchedPairIds],
   );
+
+  useEffect(() => {
+    if (!activeNetwork.supportsPublicFaucet && filter === "faucet") {
+      setFilter("all");
+    }
+  }, [activeNetwork.supportsPublicFaucet, filter]);
 
   return (
     <section className="registry-section" id="registry-explorer">
@@ -51,18 +72,33 @@ export function RegistryExplorer() {
           <span className="section-kicker">Registry Console</span>
           <h2>Official wrapper pairs, ready for action</h2>
           <p>
-            Browse every pair returned by the official Sepolia registry. Known metadata enriches
+            Browse every pair returned by the active official registry. Known metadata enriches
             labels and faucet access while the live registry remains the source of truth.
           </p>
+          {activeNetwork.environment === "mainnet" ? (
+            <span className="real-asset-pill">Real Asset Mode</span>
+          ) : null}
+          {activeNetwork.environment === "mainnet" ? (
+            <p className="mainnet-safety-copy">
+              Ethereum Mainnet uses real assets. Verify token addresses and amounts before
+              approving, wrapping, or unwrapping.
+            </p>
+          ) : null}
+          {isUnsupportedNetwork ? (
+            <p className="mainnet-safety-copy">
+              Switch to Sepolia or Ethereum Mainnet to transact. The console is showing Sepolia by
+              default.
+            </p>
+          ) : null}
         </div>
         <div className="registry-address">
-          Official registry
-          <code>{OFFICIAL_REGISTRY_ADDRESS}</code>
+          {activeNetwork.name} registry
+          <code>{activeNetwork.registryAddress}</code>
         </div>
       </div>
 
       <Reveal>
-        <RegistryHealth health={health} />
+        <RegistryHealth health={health} activeNetwork={activeNetwork} />
       </Reveal>
 
       <div className="toolbar">
@@ -81,7 +117,7 @@ export function RegistryExplorer() {
       </div>
 
       <div className="filter-tabs" role="tablist" aria-label="Registry filters">
-        {registryFilters.map((item) => (
+        {visibleFilters.map((item) => (
           <button
             className={item.id === filter ? "active" : undefined}
             key={item.id}
@@ -97,13 +133,18 @@ export function RegistryExplorer() {
 
       {error ? (
         <div className="error-panel">
-          Registry read failed: {error.message}. Confirm your wallet or RPC can read Sepolia, then
-          refresh the console.
+          <strong>
+            Registry read failed on {activeNetwork.name}. Check RPC connectivity and refresh.
+          </strong>
+          <details>
+            <summary>Error details</summary>
+            <span>{error.message.split("\n")[0]}</span>
+          </details>
         </div>
       ) : null}
 
       {!error && isRegistryLoading ? (
-        <div className="empty-state">Loading official Sepolia registry pairs...</div>
+        <div className="empty-state">Loading official {activeNetwork.name} registry pairs...</div>
       ) : null}
 
       {!error && !isRegistryLoading && filteredPairs.length === 0 ? (

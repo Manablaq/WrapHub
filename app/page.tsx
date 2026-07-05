@@ -2,7 +2,9 @@ import { Activity, ArrowRight, Code2, DatabaseZap, LayoutDashboard, ShieldCheck 
 import Link from "next/link";
 import { ConfidentialFlowEngine } from "@/components/landing/confidential-flow-engine";
 import { Reveal } from "@/components/ui/reveal";
-import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
+import { addressExplorerUrl, getDefaultNetwork } from "@/lib/networks/supported-networks";
+
+const defaultNetwork = getDefaultNetwork();
 
 const previewCards = [
   {
@@ -19,7 +21,7 @@ const previewCards = [
   },
   {
     title: "Activity",
-    description: "Inspect local session transactions with filters and Sepolia Etherscan links.",
+    description: "Inspect local session transactions with filters and network-specific Etherscan links.",
     href: "/activity",
     icon: Activity,
   },
@@ -38,11 +40,11 @@ export default function Home() {
         <div className="hero-grid">
           <div className="hero-copy">
             <p className="eyebrow">Confidential Wrapper Console</p>
-            <h1>Private token flows, verified on Sepolia.</h1>
+            <h1>Private token flows, verified across official networks.</h1>
             <p className="hero-lede">
               WrapHub helps users discover official ERC-20 ↔ ERC-7984 wrapper pairs, convert
-              public test assets into confidential balances, inspect balances locally, and unwrap
-              through encrypted settlement.
+              supported assets into confidential balances, inspect balances locally, and unwrap
+              through encrypted settlement on Sepolia and Ethereum Mainnet.
             </p>
             <div className="hero-actions">
               <Link className="primary-link" href="/registry">
@@ -66,16 +68,16 @@ export default function Home() {
             <ConfidentialFlowEngine />
             <a
               className="registry-command-address"
-              href={`https://sepolia.etherscan.io/address/${OFFICIAL_REGISTRY_ADDRESS}`}
+              href={addressExplorerUrl(defaultNetwork.registryAddress, defaultNetwork.chainId)}
               target="_blank"
               rel="noreferrer"
             >
-              {OFFICIAL_REGISTRY_ADDRESS}
+              {defaultNetwork.registryAddress}
             </a>
             <div className="command-metrics">
               <div>
                 <span>Registry source</span>
-                <strong>Official Sepolia registry</strong>
+                <strong>Official registry</strong>
               </div>
               <div>
                 <span>Known official pairs</span>

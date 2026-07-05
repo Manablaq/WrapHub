@@ -1,7 +1,8 @@
 import type { Address } from "viem";
+import { getDefaultNetwork } from "@/lib/networks/supported-networks";
 
 export const OFFICIAL_REGISTRY_ADDRESS =
-  "0x2f0750Bbb0A246059d80e94c454586a7F27a128e" as const satisfies Address;
+  getDefaultNetwork().registryAddress satisfies Address;
 
 export const registryAbi = [
   {

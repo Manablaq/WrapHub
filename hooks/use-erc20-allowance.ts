@@ -8,10 +8,12 @@ export function useErc20Allowance(
   tokenAddress: Address,
   ownerAddress: Address | undefined,
   spenderAddress: Address,
+  chainId?: number,
 ) {
   const result = useReadContract({
     address: tokenAddress,
     abi: erc20Abi,
+    chainId,
     functionName: "allowance",
     args: [ownerAddress ?? "0x0000000000000000000000000000000000000000", spenderAddress],
     query: {

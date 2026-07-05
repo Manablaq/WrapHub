@@ -4,13 +4,12 @@ import { AlertCircle, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { useApproveWrapper } from "@/hooks/use-approve-wrapper";
 import { useErc20Allowance } from "@/hooks/use-erc20-allowance";
 import { useErc20Balance } from "@/hooks/use-erc20-balance";
 import { useMintMockToken } from "@/hooks/use-mint-mock-token";
 import { useWrapToken } from "@/hooks/use-wrap-token";
-import { sepoliaTxUrl } from "@/lib/format";
+import { getNetworkOrDefault, getSupportedNetwork, txExplorerUrl } from "@/lib/networks/supported-networks";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 import { useTransactionHistory } from "@/hooks/use-transaction-history";
 
@@ -39,13 +38,25 @@ const quickAmounts = ["0.005", "0.01", "0.1"] as const;
 
 export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const [amount, setAmount] = useState("");
+  const [mainnetConfirmed, setMainnetConfirmed] = useState(false);
   const trackedHashes = useRef(new Set<`0x${string}`>());
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const isSepolia = chainId === sepolia.id;
+  const activeNetwork = getSupportedNetwork(chainId);
+  const pairNetwork = getNetworkOrDefault(pair.chainId);
+  const isPairNetwork = chainId === pair.chainId;
+  const isMainnetPair = pairNetwork.environment === "mainnet";
+  const showMintControl = pairNetwork.supportsPublicFaucet;
+  const hasPublicFaucet = pair.hasPublicFaucet && activeNetwork?.supportsPublicFaucet === true;
+  const usesFaucetWorkflow = showMintControl && hasPublicFaucet;
 
-  const balance = useErc20Balance(pair.underlyingAddress, address);
-  const allowance = useErc20Allowance(pair.underlyingAddress, address, pair.wrapperAddress);
+  const balance = useErc20Balance(pair.underlyingAddress, address, pair.chainId);
+  const allowance = useErc20Allowance(
+    pair.underlyingAddress,
+    address,
+    pair.wrapperAddress,
+    pair.chainId,
+  );
   const mint = useMintMockToken(pair.underlyingAddress);
   const approve = useApproveWrapper(pair.underlyingAddress);
   const wrap = useWrapToken(pair.wrapperAddress);
@@ -78,8 +89,9 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const hasEnoughBalance = parsedAmount !== null && parsedAmount > 0n && balance.balance >= parsedAmount;
   const hasEnoughAllowance =
     parsedAmount !== null && parsedAmount > 0n && allowance.allowance >= parsedAmount;
-  const canTransact = isConnected && isSepolia && parsedAmount !== null && parsedAmount > 0n;
-  const canApprove = canTransact && balance.balance > 0n;
+  const canTransact = isConnected && isPairNetwork && parsedAmount !== null && parsedAmount > 0n;
+  const canWriteMainnet = !isMainnetPair || mainnetConfirmed;
+  const canApprove = canTransact && canWriteMainnet && balance.balance > 0n;
   const isBusy =
     mint.isPending ||
     mint.isConfirming ||
@@ -91,7 +103,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const latestHash = wrap.hash ?? approve.hash ?? mint.hash;
   const showBalanceShortfall = canTransact && !hasEnoughBalance;
 
-  const balanceShortfallMessage = pair.hasPublicFaucet
+  const balanceShortfallMessage = hasPublicFaucet
     ? "Mint this amount first to create test ERC-20 balance."
     : "Amount exceeds your current ERC-20 balance.";
 
@@ -123,14 +135,15 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         trackedHashes.current.add(entry.hash);
         trackTransaction({
           hash: entry.hash,
+          chainId: pair.chainId,
           action: entry.action,
-          symbol: pair.symbol,
+          symbol: pair.displaySymbol,
           status: "submitted",
         });
       }
 
       if (entry.success) {
-        updateTransactionStatus(entry.hash, "confirmed");
+        updateTransactionStatus(entry.hash, "confirmed", pair.chainId);
       }
     });
   }, [
@@ -138,7 +151,8 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
     approve.isSuccess,
     mint.hash,
     mint.isSuccess,
-    pair.symbol,
+    pair.chainId,
+    pair.displaySymbol,
     trackTransaction,
     updateTransactionStatus,
     wrap.hash,
@@ -149,16 +163,28 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
     <div className="action-panel">
       <div className="action-panel-header">
         <div>
-          <span>Faucet → Approve → Wrap</span>
+          <span>{showMintControl ? "Faucet → Approve → Wrap" : "Approve → Wrap"}</span>
           <strong>Wrap ERC-20 into confidential token</strong>
         </div>
       </div>
 
       {!isConnected ? (
-        <div className="action-notice">Connect a wallet to mint, approve, and wrap this pair.</div>
+        <div className="action-notice">
+          {showMintControl
+            ? "Connect a wallet to mint, approve, and wrap this pair."
+            : "Connect a wallet to approve and wrap this pair."}
+        </div>
       ) : null}
-      {isConnected && !isSepolia ? (
-        <div className="action-notice warning">Switch to Sepolia before sending transactions.</div>
+      {isConnected && !isPairNetwork ? (
+        <div className="action-notice warning">
+          Switch to {pair.networkName} before sending transactions for this pair.
+        </div>
+      ) : null}
+      {isPairNetwork && isMainnetPair ? (
+        <div className="action-notice warning">
+          Ethereum Mainnet uses real assets. Verify token addresses and amounts before approving or
+          wrapping.
+        </div>
       ) : null}
 
       <div className="balance-grid">
@@ -173,7 +199,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
       </div>
 
       <label className="amount-field">
-        <span>Amount for mint, approve, or wrap</span>
+        <span>{usesFaucetWorkflow ? "Amount for mint, approve, or wrap" : "Amount for approve or wrap"}</span>
         <input
           inputMode="decimal"
           placeholder="0.0"
@@ -211,16 +237,32 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         </div>
       ) : null}
 
+      {isMainnetPair ? (
+        <label className="mainnet-confirmation">
+          <input
+            type="checkbox"
+            checked={mainnetConfirmed}
+            onChange={(event) => setMainnetConfirmed(event.target.checked)}
+          />
+          <span>
+            I understand Ethereum Mainnet uses real assets, and I have verified the token address
+            and amount.
+          </span>
+        </label>
+      ) : null}
+
       <div className="action-buttons">
-        <button
-          className="button secondary"
-          type="button"
-          disabled={!canTransact || isBusy || !pair.hasPublicFaucet}
-          onClick={() => address && parsedAmount && mint.mint(address, parsedAmount)}
-        >
-          {mint.isPending || mint.isConfirming ? <Loader2 className="spin" size={15} /> : null}
-          {pair.hasPublicFaucet ? "Mint test ERC-20" : "Restricted mint"}
-        </button>
+        {showMintControl ? (
+          <button
+            className="button secondary"
+            type="button"
+            disabled={!canTransact || isBusy || !hasPublicFaucet}
+            onClick={() => address && parsedAmount && mint.mint(address, parsedAmount)}
+          >
+            {mint.isPending || mint.isConfirming ? <Loader2 className="spin" size={15} /> : null}
+            {hasPublicFaucet ? "Mint test ERC-20" : "Restricted mint"}
+          </button>
+        ) : null}
         <button
           className="button secondary"
           type="button"
@@ -233,7 +275,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         <button
           className="button primary"
           type="button"
-          disabled={!canTransact || isBusy || !hasEnoughBalance || !hasEnoughAllowance}
+          disabled={!canTransact || !canWriteMainnet || isBusy || !hasEnoughBalance || !hasEnoughAllowance}
           onClick={() => address && parsedAmount && wrap.wrap(address, parsedAmount)}
         >
           {wrap.isPending || wrap.isConfirming ? <Loader2 className="spin" size={15} /> : null}
@@ -246,17 +288,23 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
       ) : null}
 
       {canTransact && balance.balance === 0n ? (
-        <div className="inline-status">Mint or receive ERC-20 before approving.</div>
+        <div className="inline-status">
+          {isMainnetPair
+            ? "Minting is unavailable on Ethereum Mainnet. Use an existing ERC-20 balance before approving or wrapping."
+            : "Mint or receive ERC-20 before approving."}
+        </div>
       ) : null}
 
-      {pair.hasPublicFaucet ? (
+      {usesFaucetWorkflow ? (
         <div className="inline-status">
           For public mock pairs, enter an amount, mint test ERC-20, approve the wrapper, then wrap
           confidentially.
         </div>
+      ) : isMainnetPair ? (
+        <div className="inline-status">No public faucet on Ethereum Mainnet.</div>
       ) : (
         <div className="inline-status">
-          Restricted pairs do not expose a public faucet. Use existing ERC-20 balance before
+          This network or pair does not expose a public faucet. Use existing ERC-20 balance before
           approving or wrapping.
         </div>
       )}
@@ -272,7 +320,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         <div className="tx-status">
           <CheckCircle2 size={15} />
           <span>{wrap.isSuccess || approve.isSuccess || mint.isSuccess ? "Confirmed" : "Submitted"}</span>
-          <a href={sepoliaTxUrl(latestHash)} target="_blank" rel="noreferrer">
+          <a href={txExplorerUrl(latestHash, pair.chainId)} target="_blank" rel="noreferrer">
             View tx <ExternalLink size={13} />
           </a>
         </div>

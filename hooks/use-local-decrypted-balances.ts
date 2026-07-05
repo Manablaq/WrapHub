@@ -7,6 +7,7 @@ const STORAGE_KEY = "wraphub.decryptedBalances.session";
 const DECRYPTED_BALANCE_EVENT = "wraphub.decryptedBalanceChanged";
 
 export type LocalDecryptedBalance = {
+  chainId: number;
   accountAddress: Address;
   wrapperAddress: Address;
   value: string;
@@ -14,8 +15,8 @@ export type LocalDecryptedBalance = {
   updatedAt: number;
 };
 
-function entryKey(accountAddress: Address, wrapperAddress: Address) {
-  return `${accountAddress.toLowerCase()}:${wrapperAddress.toLowerCase()}`;
+function entryKey(chainId: number, accountAddress: Address, wrapperAddress: Address) {
+  return `${chainId}:${accountAddress.toLowerCase()}:${wrapperAddress.toLowerCase()}`;
 }
 
 function readEntries() {
@@ -42,24 +43,32 @@ export function recordLocalDecryptedBalance(entry: Omit<LocalDecryptedBalance, "
   }
 
   const entries = readEntries();
-  entries[entryKey(entry.accountAddress, entry.wrapperAddress)] = {
+  entries[entryKey(entry.chainId, entry.accountAddress, entry.wrapperAddress)] = {
     ...entry,
     updatedAt: Date.now(),
   };
   writeEntries(entries);
 }
 
-export function clearLocalDecryptedBalance(accountAddress: Address, wrapperAddress: Address) {
+export function clearLocalDecryptedBalance(
+  chainId: number,
+  accountAddress: Address,
+  wrapperAddress: Address,
+) {
   if (typeof window === "undefined") {
     return;
   }
 
   const entries = readEntries();
-  delete entries[entryKey(accountAddress, wrapperAddress)];
+  delete entries[entryKey(chainId, accountAddress, wrapperAddress)];
   writeEntries(entries);
 }
 
-export function useLocalDecryptedBalance(accountAddress?: Address, wrapperAddress?: Address) {
+export function useLocalDecryptedBalance(
+  chainId?: number,
+  accountAddress?: Address,
+  wrapperAddress?: Address,
+) {
   const [entries, setEntries] = useState<Record<string, LocalDecryptedBalance>>({});
 
   useEffect(() => {
@@ -76,18 +85,18 @@ export function useLocalDecryptedBalance(accountAddress?: Address, wrapperAddres
   }, []);
 
   const balance = useMemo(() => {
-    if (!accountAddress || !wrapperAddress) {
+    if (!chainId || !accountAddress || !wrapperAddress) {
       return null;
     }
 
-    return entries[entryKey(accountAddress, wrapperAddress)] ?? null;
-  }, [accountAddress, entries, wrapperAddress]);
+    return entries[entryKey(chainId, accountAddress, wrapperAddress)] ?? null;
+  }, [accountAddress, chainId, entries, wrapperAddress]);
 
   const clearAccountBalances = useCallback((account: Address) => {
     const current = readEntries();
-    const accountPrefix = `${account.toLowerCase()}:`;
+    const accountNeedle = `:${account.toLowerCase()}:`;
     const next = Object.fromEntries(
-      Object.entries(current).filter(([key]) => !key.startsWith(accountPrefix)),
+      Object.entries(current).filter(([key]) => !key.includes(accountNeedle)),
     );
     writeEntries(next);
     setEntries(next);

@@ -4,12 +4,12 @@ import { ArrowRight, CheckCircle2, Eye, Star } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { formatUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { useConfidentialBalanceHandle } from "@/hooks/use-confidential-balance-handle";
 import { useErc20Allowance } from "@/hooks/use-erc20-allowance";
 import { useErc20Balance } from "@/hooks/use-erc20-balance";
 import { useLocalDecryptedBalance } from "@/hooks/use-local-decrypted-balances";
 import { useWatchlist } from "@/hooks/use-watchlist";
+import { getNetworkOrDefault } from "@/lib/networks/supported-networks";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 
 const ZERO_HANDLE =
@@ -33,7 +33,7 @@ function formatCompactTokenAmount(value: bigint, decimals: number) {
 
 function getReadinessLabels({
   connected,
-  isSepolia,
+  isPairNetwork,
   pair,
   balance,
   allowance,
@@ -41,7 +41,7 @@ function getReadinessLabels({
   hasDecryptedPositiveBalance,
 }: {
   connected: boolean;
-  isSepolia: boolean;
+  isPairNetwork: boolean;
   pair: EnrichedRegistryPair;
   balance: bigint;
   allowance: bigint;
@@ -52,11 +52,18 @@ function getReadinessLabels({
     return ["Connect wallet"];
   }
 
-  if (!isSepolia) {
+  if (!isPairNetwork) {
     return ["Wrong network"];
   }
 
-  const labels = [pair.hasPublicFaucet ? "Ready to mint" : "Restricted mint"];
+  const pairNetwork = getNetworkOrDefault(pair.chainId);
+  const labels = [
+    pairNetwork.environment === "mainnet"
+      ? "No public faucet"
+      : pair.hasPublicFaucet
+        ? "Ready to mint"
+        : "Restricted mint",
+  ];
 
   if (balance > 0n && allowance < balance) {
     labels.push("Ready to approve");
@@ -81,12 +88,17 @@ export function PortfolioPairCard({
 }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const isSepolia = chainId === sepolia.id;
-  const balance = useErc20Balance(pair.underlyingAddress, address);
-  const allowance = useErc20Allowance(pair.underlyingAddress, address, pair.wrapperAddress);
-  const confidentialHandle = useConfidentialBalanceHandle(pair.wrapperAddress, address);
-  const decrypted = useLocalDecryptedBalance(address, pair.wrapperAddress);
-  const { isWatched, toggleWatched } = useWatchlist();
+  const isPairNetwork = chainId === pair.chainId;
+  const balance = useErc20Balance(pair.underlyingAddress, address, pair.chainId);
+  const allowance = useErc20Allowance(
+    pair.underlyingAddress,
+    address,
+    pair.wrapperAddress,
+    pair.chainId,
+  );
+  const confidentialHandle = useConfidentialBalanceHandle(pair.wrapperAddress, address, pair.chainId);
+  const decrypted = useLocalDecryptedBalance(pair.chainId, address, pair.wrapperAddress);
+  const { isWatched, toggleWatched } = useWatchlist(pair.chainId);
   const watched = isWatched(pair.id);
 
   const encryptedHandle = confidentialHandle.handle;
@@ -101,7 +113,7 @@ export function PortfolioPairCard({
     () =>
       getReadinessLabels({
         connected: isConnected,
-        isSepolia,
+        isPairNetwork,
         pair,
         balance: balance.balance,
         allowance: allowance.allowance,
@@ -114,7 +126,7 @@ export function PortfolioPairCard({
       hasDecryptedBalance,
       hasDecryptedPositiveBalance,
       isConnected,
-      isSepolia,
+      isPairNetwork,
       pair,
     ],
   );
@@ -143,13 +155,14 @@ export function PortfolioPairCard({
       <div className="portfolio-pair-header">
         <div>
           <span>Official pair</span>
-          <h3>{pair.symbol}</h3>
+          <h3>{pair.displaySymbol}</h3>
+          <small>{pair.networkName}</small>
         </div>
         <button
           className={`watch-button ${watched ? "active" : ""}`}
           type="button"
           onClick={() => toggleWatched(pair.id)}
-          aria-label={watched ? `Remove ${pair.symbol} from watchlist` : `Add ${pair.symbol} to watchlist`}
+          aria-label={watched ? `Remove ${pair.displaySymbol} from watchlist` : `Add ${pair.displaySymbol} to watchlist`}
           aria-pressed={watched}
           title={watched ? "Remove from watchlist" : "Add to watchlist"}
         >
@@ -178,7 +191,7 @@ export function PortfolioPairCard({
         </div>
       </div>
 
-      <div className="readiness-list" aria-label={`${pair.symbol} readiness`}>
+      <div className="readiness-list" aria-label={`${pair.displaySymbol} readiness`}>
         {readinessLabels.map((label) => (
           <span className="readiness-chip" key={label}>
             {label === "Ready to unwrap" || label === "Ready to wrap" ? (
