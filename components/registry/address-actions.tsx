@@ -9,14 +9,28 @@ export function AddressActions({ address }: { address: Address }) {
   const [copied, setCopied] = useState(false);
 
   async function copyAddress() {
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
+    try {
+      if (!navigator.clipboard) {
+        return;
+      }
+
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
   }
 
   return (
     <div className="address-actions">
-      <button className="icon-button" type="button" onClick={copyAddress} title="Copy address">
+      <button
+        className="icon-button"
+        type="button"
+        onClick={copyAddress}
+        aria-label="Copy address"
+        title="Copy address"
+      >
         {copied ? <Check size={16} /> : <Copy size={16} />}
       </button>
       <a
@@ -24,6 +38,7 @@ export function AddressActions({ address }: { address: Address }) {
         href={sepoliaAddressUrl(address)}
         target="_blank"
         rel="noreferrer"
+        aria-label="Open address on Sepolia Etherscan"
         title="Open on Sepolia Etherscan"
       >
         <ExternalLink size={16} />

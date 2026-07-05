@@ -1,7 +1,18 @@
-import { AlertTriangle, CheckCircle2, Info, LockKeyhole, ShieldCheck, TestTube2 } from "lucide-react";
+"use client";
+
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  LockKeyhole,
+  ShieldCheck,
+  Star,
+  TestTube2,
+} from "lucide-react";
 import { AddressActions } from "@/components/registry/address-actions";
 import { ConfidentialBalanceInspector } from "@/components/registry/confidential-balance-inspector";
 import { PairActionPanel } from "@/components/registry/pair-action-panel";
+import { useWatchlist } from "@/hooks/use-watchlist";
 import { shortenAddress } from "@/lib/format";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 
@@ -58,6 +69,8 @@ function classificationBadge(pair: EnrichedRegistryPair) {
 }
 
 export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
+  const { isWatched, toggleWatched } = useWatchlist();
+  const watched = isWatched(pair.id);
   const cardTone =
     pair.validity === "revoked"
       ? "invalid"
@@ -66,7 +79,7 @@ export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
         : pair.classification;
 
   return (
-    <article className={`pair-card ${cardTone}`}>
+    <article className={`pair-card ${cardTone}`} id={`pair-${pair.id}`}>
       <div className="pair-card-header">
         <div className="token-title">
           <span>{pair.classification === "known-official" ? "Official wrapper pair" : "Registry pair"}</span>
@@ -74,6 +87,17 @@ export function PairCard({ pair }: { pair: EnrichedRegistryPair }) {
           <p>{pair.name}</p>
         </div>
         <div className="badge-stack">
+          <button
+            className={`watch-button ${watched ? "active" : ""}`}
+            type="button"
+            onClick={() => toggleWatched(pair.id)}
+            aria-label={watched ? `Remove ${pair.symbol} from watchlist` : `Add ${pair.symbol} to watchlist`}
+            aria-pressed={watched}
+            title={watched ? "Remove from watchlist" : "Add to watchlist"}
+          >
+            <Star size={14} />
+            Watch
+          </button>
           {classificationBadge(pair)}
           <span className={`badge ${validityClass(pair)}`}>
             {pair.validity === "valid" && <CheckCircle2 size={13} />}

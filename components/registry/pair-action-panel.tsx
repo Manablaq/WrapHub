@@ -35,6 +35,8 @@ function getFriendlyError(error: Error | null | undefined) {
   return message;
 }
 
+const quickAmounts = ["0.005", "0.01", "0.1"] as const;
+
 export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const [amount, setAmount] = useState("");
   const trackedHashes = useRef(new Set<`0x${string}`>());
@@ -63,7 +65,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
     }
 
     if (parsedAmount === null) {
-      return "Enter a valid token amount.";
+      return "Enter a valid amount.";
     }
 
     if (parsedAmount <= 0n) {
@@ -77,6 +79,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
   const hasEnoughAllowance =
     parsedAmount !== null && parsedAmount > 0n && allowance.allowance >= parsedAmount;
   const canTransact = isConnected && isSepolia && parsedAmount !== null && parsedAmount > 0n;
+  const canApprove = canTransact && balance.balance > 0n;
   const isBusy =
     mint.isPending ||
     mint.isConfirming ||
@@ -86,6 +89,11 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
     wrap.isConfirming;
   const transactionError = getFriendlyError(mint.error ?? approve.error ?? wrap.error);
   const latestHash = wrap.hash ?? approve.hash ?? mint.hash;
+  const showBalanceShortfall = canTransact && !hasEnoughBalance;
+
+  const balanceShortfallMessage = pair.hasPublicFaucet
+    ? "Mint this amount first to create test ERC-20 balance."
+    : "Amount exceeds your current ERC-20 balance.";
 
   useEffect(() => {
     if (mint.isSuccess || wrap.isSuccess) {
@@ -165,7 +173,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
       </div>
 
       <label className="amount-field">
-        <span>Amount</span>
+        <span>Amount for mint, approve, or wrap</span>
         <input
           inputMode="decimal"
           placeholder="0.0"
@@ -174,6 +182,21 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         />
       </label>
 
+      <div className="quick-amounts" aria-label="Quick amount shortcuts">
+        {quickAmounts.map((value) => (
+          <button type="button" key={value} onClick={() => setAmount(value)}>
+            {value}
+          </button>
+        ))}
+        <button
+          type="button"
+          disabled={balance.balance === 0n}
+          onClick={() => setAmount(formatUnits(balance.balance, balance.decimals))}
+        >
+          Max
+        </button>
+      </div>
+
       {amount.trim() && amountError ? (
         <div className="inline-status warning">
           <AlertCircle size={15} />
@@ -181,10 +204,10 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         </div>
       ) : null}
 
-      {canTransact && !hasEnoughBalance ? (
+      {showBalanceShortfall ? (
         <div className="inline-status warning">
           <AlertCircle size={15} />
-          Balance is lower than the wrap amount.
+          {balanceShortfallMessage}
         </div>
       ) : null}
 
@@ -201,7 +224,7 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
         <button
           className="button secondary"
           type="button"
-          disabled={!canTransact || isBusy}
+          disabled={!canApprove || isBusy}
           onClick={() => parsedAmount && approve.approve(pair.wrapperAddress, parsedAmount)}
         >
           {approve.isPending || approve.isConfirming ? <Loader2 className="spin" size={15} /> : null}
@@ -219,14 +242,24 @@ export function PairActionPanel({ pair }: { pair: EnrichedRegistryPair }) {
       </div>
 
       {canTransact && hasEnoughBalance && !hasEnoughAllowance ? (
-        <div className="inline-status">Approve the wrapper before wrapping this amount.</div>
+        <div className="inline-status">Approve this amount before wrapping.</div>
+      ) : null}
+
+      {canTransact && balance.balance === 0n ? (
+        <div className="inline-status">Mint or receive ERC-20 before approving.</div>
       ) : null}
 
       {pair.hasPublicFaucet ? (
         <div className="inline-status">
-          Public mock faucet access is available for official cTokenMock underlying ERC-20s.
+          For public mock pairs, enter an amount, mint test ERC-20, approve the wrapper, then wrap
+          confidentially.
         </div>
-      ) : null}
+      ) : (
+        <div className="inline-status">
+          Restricted pairs do not expose a public faucet. Use existing ERC-20 balance before
+          approving or wrapping.
+        </div>
+      )}
 
       {transactionError ? (
         <div className="inline-status danger">

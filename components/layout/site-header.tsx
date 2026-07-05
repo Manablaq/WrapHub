@@ -22,9 +22,12 @@ export function SiteHeader() {
           </span>
         </Link>
         <nav className="site-nav" aria-label="Primary navigation">
-          <a href="#how-it-works">How it works</a>
-          <a href="#registry-explorer">Registry</a>
-          <a href="#developer-console">Developer Console</a>
+          <Link href="/">Home</Link>
+          <Link href="/how-it-works">How it works</Link>
+          <Link href="/portfolio">Portfolio</Link>
+          <Link href="/registry">Registry</Link>
+          <Link href="/activity">Activity</Link>
+          <Link href="/developer-console">Developer Console</Link>
         </nav>
         <div className="header-actions">
           <span className={`network-pill ${isConnected && !isSepolia ? "warning" : ""}`}>

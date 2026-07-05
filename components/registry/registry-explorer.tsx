@@ -2,11 +2,8 @@
 
 import { RefreshCcw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { DeveloperPanel } from "@/components/registry/developer-panel";
-import { GuidedWorkflow } from "@/components/registry/guided-workflow";
 import { PairCard } from "@/components/registry/pair-card";
 import { RegistryHealth } from "@/components/registry/registry-health";
-import { TransactionTimeline } from "@/components/registry/transaction-timeline";
 import { Reveal } from "@/components/ui/reveal";
 import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
 import {
@@ -15,6 +12,7 @@ import {
   type RegistryFilter,
 } from "@/lib/registry/filters";
 import { useRegistryPairs } from "@/hooks/use-registry-pairs";
+import { useWatchlist } from "@/hooks/use-watchlist";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 
 function sortPairsForReview(pairs: EnrichedRegistryPair[]) {
@@ -39,10 +37,11 @@ export function RegistryExplorer() {
   const [filter, setFilter] = useState<RegistryFilter>("all");
   const { pairs, health, isLoading, isRegistryLoading, isValidityLoading, error, refetch } =
     useRegistryPairs();
+  const { watchedPairIds } = useWatchlist();
 
   const filteredPairs = useMemo(
-    () => sortPairsForReview(filterRegistryPairs(pairs, filter, search)),
-    [filter, pairs, search],
+    () => sortPairsForReview(filterRegistryPairs(pairs, filter, search, watchedPairIds)),
+    [filter, pairs, search, watchedPairIds],
   );
 
   return (
@@ -62,12 +61,6 @@ export function RegistryExplorer() {
         </div>
       </div>
 
-      <Reveal>
-        <GuidedWorkflow />
-      </Reveal>
-      <Reveal>
-        <TransactionTimeline />
-      </Reveal>
       <Reveal>
         <RegistryHealth health={health} />
       </Reveal>
@@ -93,6 +86,8 @@ export function RegistryExplorer() {
             className={item.id === filter ? "active" : undefined}
             key={item.id}
             onClick={() => setFilter(item.id)}
+            role="tab"
+            aria-selected={item.id === filter}
             type="button"
           >
             {item.label}
@@ -122,10 +117,6 @@ export function RegistryExplorer() {
           </Reveal>
         ))}
       </div>
-
-      <Reveal>
-        <DeveloperPanel />
-      </Reveal>
     </section>
   );
 }

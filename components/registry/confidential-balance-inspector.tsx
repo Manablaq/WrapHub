@@ -12,6 +12,10 @@ import { useUnwrapToken } from "@/hooks/use-unwrap-token";
 import { sepoliaTxUrl, shortenBytes32 } from "@/lib/format";
 import type { EnrichedRegistryPair } from "@/lib/registry/types";
 import { useTransactionHistory } from "@/hooks/use-transaction-history";
+import {
+  clearLocalDecryptedBalance,
+  recordLocalDecryptedBalance,
+} from "@/hooks/use-local-decrypted-balances";
 
 function formatDecryptedBalance(value: unknown, decimals: number) {
   if (typeof value === "bigint") {
@@ -106,10 +110,13 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
 
     processedUnwrapHash.current = finalizeHash;
     setUnwrapAmount("");
+    if (address) {
+      clearLocalDecryptedBalance(address, pair.wrapperAddress);
+    }
     decrypt.reset();
     void handleRead.refetch();
     void queryClient.invalidateQueries();
-  }, [decrypt, handleRead, queryClient, unwrap.data?.txHash, unwrap.isSuccess]);
+  }, [address, decrypt, handleRead, pair.wrapperAddress, queryClient, unwrap.data?.txHash, unwrap.isSuccess]);
 
   useEffect(() => {
     if (unwrap.requestHash) {
@@ -151,6 +158,19 @@ export function ConfidentialBalanceInspector({ pair }: { pair: EnrichedRegistryP
     unwrap.requestHash,
     updateTransactionStatus,
   ]);
+
+  useEffect(() => {
+    if (!address || unwrap.isSuccess || typeof decrypt.decryptedValue !== "bigint") {
+      return;
+    }
+
+    recordLocalDecryptedBalance({
+      accountAddress: address,
+      wrapperAddress: pair.wrapperAddress,
+      value: decrypt.decryptedValue.toString(),
+      decimals: handleRead.decimals,
+    });
+  }, [address, decrypt.decryptedValue, handleRead.decimals, pair.wrapperAddress, unwrap.isSuccess]);
 
   function submitUnwrap() {
     if (!canUnwrap || parsedUnwrapAmount === null) {

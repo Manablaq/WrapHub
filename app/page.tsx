@@ -1,30 +1,33 @@
-import { ArrowRight, DatabaseZap, Eye, Repeat2, ShieldCheck } from "lucide-react";
+import { Activity, ArrowRight, Code2, DatabaseZap, LayoutDashboard, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { ConfidentialFlowEngine } from "@/components/landing/confidential-flow-engine";
-import { RegistryExplorer } from "@/components/registry/registry-explorer";
 import { Reveal } from "@/components/ui/reveal";
 import { OFFICIAL_REGISTRY_ADDRESS } from "@/lib/contracts/registry";
 
-const howItWorksCards = [
+const previewCards = [
   {
-    title: "Discover",
-    description: "Read official ERC-20 ↔ ERC-7984 pairs directly from the Sepolia registry.",
+    title: "Portfolio",
+    description: "Review active holdings and wallet readiness across official wrapper pairs.",
+    href: "/portfolio",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Registry",
+    description: "Open the full registry console for faucet, approve, wrap, decrypt, and unwrap.",
+    href: "/registry",
     icon: DatabaseZap,
   },
   {
-    title: "Wrap",
-    description: "Mint supported public mocks, approve wrappers, and convert ERC-20 into confidential balances.",
-    icon: Repeat2,
+    title: "Activity",
+    description: "Inspect local session transactions with filters and Sepolia Etherscan links.",
+    href: "/activity",
+    icon: Activity,
   },
   {
-    title: "Inspect",
-    description: "Use EIP-712 user-decryption to inspect your ERC-7984 balance locally.",
-    icon: Eye,
-  },
-  {
-    title: "Unwrap",
-    description: "Settle confidential balances back to ERC-20 through Zama's encrypted request/finalize flow.",
-    icon: ShieldCheck,
+    title: "Developer Console",
+    description: "Review registry integration details, function names, and protocol addresses.",
+    href: "/developer-console",
+    icon: Code2,
   },
 ];
 
@@ -42,10 +45,10 @@ export default function Home() {
               through encrypted settlement.
             </p>
             <div className="hero-actions">
-              <Link className="primary-link" href="#registry-explorer">
-                Launch App <ArrowRight size={18} />
+              <Link className="primary-link" href="/registry">
+                Launch Console <ArrowRight size={18} />
               </Link>
-              <Link className="secondary-link" href="#how-it-works">
+              <Link className="secondary-link" href="/how-it-works">
                 How it works
               </Link>
             </div>
@@ -95,17 +98,17 @@ export default function Home() {
         </div>
       </Reveal>
 
-      <Reveal as="section" className="how-it-works" id="how-it-works" ariaLabel="How WrapHub works">
+      <Reveal as="section" className="how-it-works" ariaLabel="WrapHub product areas">
         <div className="landing-section-header">
-          <p className="eyebrow">How it works</p>
-          <h2>From public test assets to confidential balances.</h2>
+          <p className="eyebrow">Product surface</p>
+          <h2>Choose the workspace you need.</h2>
           <p>
-            WrapHub turns the official wrapper registry into a focused workflow for discovery,
-            wrapping, local inspection, and encrypted settlement.
+            Start with the registry console, monitor connected-wallet readiness, or inspect local
+            session activity and integration details.
           </p>
         </div>
         <div className="feature-row how-card-grid">
-          {howItWorksCards.map((feature) => {
+          {previewCards.map((feature) => {
             const Icon = feature.icon;
             return (
               <Reveal as="article" className="feature-card how-card" key={feature.title}>
@@ -113,14 +116,15 @@ export default function Home() {
                 <div>
                   <h2>{feature.title}</h2>
                   <p>{feature.description}</p>
+                  <Link className="card-link" href={feature.href}>
+                    Open <ArrowRight size={14} />
+                  </Link>
                 </div>
               </Reveal>
             );
           })}
         </div>
       </Reveal>
-
-      <RegistryExplorer />
     </div>
   );
 }
